@@ -1,0 +1,1913 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#070C0E">
+<title>Bioma · Sistema operativo de ecosistemas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --abyss:#070C0E; --deep:#0B1214; --card:#111B1D; --card2:#162426; --line:#1E2E30;
+  --txt:#E7F0EC; --dim:#8FA69D; --faint:#5E736C;
+  --moss:#7FD1A6; --wood:#D08A57; --led:#A98BF5; --alert:#F07461; --warn:#E8B14C;
+  --r:14px; --r-sm:10px;
+  --ff-d:'Space Grotesk',system-ui,sans-serif;
+  --ff-b:'Inter',system-ui,-apple-system,sans-serif;
+  --ff-m:'IBM Plex Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:
+    radial-gradient(120% 70% at 50% -10%, #10201F 0%, transparent 60%),
+    var(--abyss);
+  color:var(--txt); font-family:var(--ff-b); font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased; overflow-x:hidden;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:none;border:none;cursor:pointer}
+a{color:inherit;text-decoration:none}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:#1D2C2E;border-radius:4px}
+
+/* ---------- shell ---------- */
+#app{display:flex;min-height:100vh}
+.rail{
+  width:236px;flex:0 0 236px;border-right:1px solid var(--line);
+  padding:22px 14px;position:sticky;top:0;height:100vh;
+  display:flex;flex-direction:column;gap:4px;background:rgba(7,12,14,.6);backdrop-filter:blur(12px);z-index:20
+}
+.brand{display:flex;align-items:center;gap:10px;padding:0 8px 20px}
+.brand b{font-family:var(--ff-d);font-size:19px;font-weight:600;letter-spacing:-.02em}
+.brand small{display:block;font-family:var(--ff-m);font-size:9.5px;color:var(--faint);letter-spacing:.14em;text-transform:uppercase}
+.mark{width:26px;height:26px;border-radius:8px;background:linear-gradient(155deg,var(--moss),#2C6B57 60%,var(--led));flex:0 0 auto}
+.navlink{
+  display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:var(--r-sm);
+  color:var(--dim);font-size:14.5px;transition:.15s
+}
+.navlink:hover{background:var(--card);color:var(--txt)}
+.navlink.on{background:var(--card2);color:var(--txt)}
+.navlink .ic{width:18px;text-align:center;opacity:.9}
+.navsec{font-family:var(--ff-m);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);padding:18px 10px 7px}
+.rail-foot{margin-top:auto;border-top:1px solid var(--line);padding-top:12px}
+main{flex:1;min-width:0;padding:26px 30px 120px;max-width:1180px}
+
+/* ---------- typography ---------- */
+h1{font-family:var(--ff-d);font-size:26px;font-weight:600;letter-spacing:-.025em}
+h2{font-family:var(--ff-d);font-size:17px;font-weight:600;letter-spacing:-.015em;margin-bottom:2px}
+h3{font-family:var(--ff-d);font-size:14.5px;font-weight:600}
+.eyebrow{font-family:var(--ff-m);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+.dim{color:var(--dim)} .faint{color:var(--faint)}
+.num{font-family:var(--ff-m);font-variant-numeric:tabular-nums}
+.pagehead{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+
+/* ---------- cards ---------- */
+.card{background:linear-gradient(180deg,var(--card) 0%,#0F1819 100%);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.card.pad0{padding:0;overflow:hidden}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.row{display:flex;align-items:center;gap:10px}
+.between{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.stack{display:flex;flex-direction:column;gap:14px}
+.sep{height:1px;background:var(--line);margin:12px 0}
+
+/* ---------- buttons ---------- */
+.btn{
+  display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:var(--r-sm);
+  background:var(--card2);border:1px solid var(--line);font-size:13.5px;transition:.15s;white-space:nowrap
+}
+.btn:hover{border-color:#2E4443;background:#1B2B2D}
+.btn.primary{background:var(--moss);color:#06231A;border-color:transparent;font-weight:600}
+.btn.primary:hover{background:#96DDB7}
+.btn.ghost{background:none}
+.btn.sm{padding:5px 9px;font-size:12.5px}
+.btn:focus-visible,.navlink:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.tap:focus-visible{outline:2px solid var(--moss);outline-offset:2px}
+
+/* ---------- pills / chips ---------- */
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-family:var(--ff-m);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line);color:var(--dim)}
+.pill.ok{color:var(--moss);border-color:#22503E;background:#0E211A}
+.pill.warn{color:var(--warn);border-color:#4A3B18;background:#211A0B}
+.pill.bad{color:var(--alert);border-color:#4E2620;background:#22110E}
+.pill.led{color:var(--led);border-color:#3A2F60;background:#150F26}
+.pill.wood{color:var(--wood);border-color:#4A3122;background:#20140D}
+.tag{font-family:var(--ff-m);font-size:10px;color:var(--faint);border:1px solid var(--line);border-radius:5px;padding:2px 6px}
+
+/* ---------- ecosystem card ---------- */
+.eco{display:flex;gap:0;overflow:hidden;cursor:pointer;transition:.18s;border:1px solid var(--line);border-radius:var(--r);background:var(--card)}
+.eco:hover{border-color:#31504C;transform:translateY(-2px)}
+.eco-body{padding:16px;flex:1;min-width:0}
+/* SIGNATURE: columna de agua */
+.column{width:52px;flex:0 0 52px;border-right:1px solid var(--line);display:flex;flex-direction:column;background:linear-gradient(180deg,#16303A,#0E1B1C 55%,#1A140F)}
+.zone{flex:1;position:relative;display:flex;align-items:center;justify-content:center;border-bottom:1px solid rgba(255,255,255,.05)}
+.zone:last-child{border-bottom:none}
+.zone b{font-family:var(--ff-m);font-size:13px;font-weight:500}
+.zone span{position:absolute;left:5px;top:5px;font-family:var(--ff-m);font-size:8px;letter-spacing:.1em;color:rgba(255,255,255,.32)}
+.z-top b{color:#8FD6E8} .z-mid b{color:var(--moss)} .z-bot b{color:var(--wood)}
+
+/* ---------- lists ---------- */
+.list{display:flex;flex-direction:column}
+.item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.item:last-child{border-bottom:none}
+.item.tap{cursor:pointer;transition:.12s}
+.item.tap:hover{background:#152021}
+.item .grow{flex:1;min-width:0}
+.item .t{font-size:14.5px}
+.item .s{font-size:12.5px;color:var(--dim)}
+.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* checkbox */
+.chk{width:22px;height:22px;flex:0 0 22px;border-radius:7px;border:1.5px solid #33484A;display:grid;place-items:center;font-size:12px;color:transparent;transition:.15s}
+.chk:hover{border-color:var(--moss)}
+.chk.on{background:var(--moss);border-color:var(--moss);color:#06231A}
+.chk.half{border-color:var(--warn);color:var(--warn)}
+.chk.skip{border-color:var(--faint);color:var(--faint)}
+.done .t{text-decoration:line-through;color:var(--faint)}
+
+/* ---------- metrics ---------- */
+.metric{background:var(--card);border:1px solid var(--line);border-radius:var(--r-sm);padding:11px 13px}
+.metric .k{font-family:var(--ff-m);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.metric .v{font-family:var(--ff-m);font-size:21px;letter-spacing:-.02em;margin-top:3px}
+.metric .v small{font-size:11px;color:var(--dim);letter-spacing:0}
+.metric .d{font-size:11px;color:var(--faint);margin-top:2px}
+.metric.empty .v{color:var(--faint);font-size:14px}
+
+/* ---------- alerts ---------- */
+.alert{display:flex;gap:11px;padding:12px 14px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--card);align-items:flex-start}
+.alert.crit{border-color:#4E2620;background:linear-gradient(90deg,#22110E,var(--card) 70%)}
+.alert.warn{border-color:#4A3B18;background:linear-gradient(90deg,#1E180B,var(--card) 70%)}
+.alert .bar{width:3px;border-radius:2px;align-self:stretch;background:var(--dim)}
+.alert.crit .bar{background:var(--alert)} .alert.warn .bar{background:var(--warn)} .alert.info .bar{background:var(--moss)}
+.alert .why{font-size:12.5px;color:var(--dim);margin-top:3px}
+
+/* ---------- tabs ---------- */
+.tabs{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid var(--line);margin-bottom:18px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:9px 12px;font-size:13.5px;color:var(--dim);border-bottom:2px solid transparent;white-space:nowrap;transition:.15s}
+.tab:hover{color:var(--txt)}
+.tab.on{color:var(--txt);border-bottom-color:var(--moss)}
+
+/* ---------- forms ---------- */
+label.f{display:block;margin-bottom:11px}
+label.f .lb{display:block;font-family:var(--ff-m);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:5px}
+input,select,textarea{
+  width:100%;background:#0C1516;border:1px solid var(--line);border-radius:var(--r-sm);
+  padding:9px 11px;font-size:14px
+}
+input:focus,select:focus,textarea:focus{border-color:#33564E;outline:none}
+textarea{min-height:78px;resize:vertical;font-family:inherit}
+.hint{font-size:11.5px;color:var(--faint);margin-top:4px}
+
+/* ---------- modal ---------- */
+.backdrop{position:fixed;inset:0;background:rgba(4,8,9,.72);backdrop-filter:blur(4px);z-index:60;display:grid;place-items:center;padding:16px;animation:fade .18s}
+.modal{background:#0F1A1B;border:1px solid var(--line);border-radius:16px;width:min(520px,100%);max-height:88vh;overflow:auto;box-shadow:0 30px 70px rgba(0,0,0,.6)}
+.modal header{padding:16px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#0F1A1B;z-index:2}
+.modal .body{padding:16px 18px}
+.modal footer{padding:14px 18px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;position:sticky;bottom:0;background:#0F1A1B}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+/* ---------- chat ---------- */
+.fab{position:fixed;right:20px;bottom:20px;width:52px;height:52px;border-radius:16px;background:linear-gradient(150deg,var(--moss),#2E7A62 55%,var(--led));display:grid;place-items:center;font-size:21px;box-shadow:0 10px 28px rgba(0,0,0,.5);z-index:40;transition:.18s}
+.fab:hover{transform:translateY(-2px) scale(1.03)}
+.chatpanel{position:fixed;right:0;top:0;bottom:0;width:min(430px,100%);background:#0B1416;border-left:1px solid var(--line);z-index:70;display:flex;flex-direction:column;animation:slide .22s}
+@keyframes slide{from{transform:translateX(20px);opacity:0}to{transform:none;opacity:1}}
+.chatlog{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:88%;padding:10px 13px;border-radius:14px;font-size:14px;white-space:pre-wrap;line-height:1.55}
+.msg.me{align-self:flex-end;background:var(--card2);border:1px solid var(--line);border-bottom-right-radius:4px}
+.msg.ai{align-self:flex-start;background:linear-gradient(180deg,#12211F,#0E1A19);border:1px solid #24413A;border-bottom-left-radius:4px}
+.msg .src{display:block;margin-top:7px;font-family:var(--ff-m);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.chatin{padding:12px;border-top:1px solid var(--line);display:flex;gap:8px}
+.sugg{display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 12px}
+.sugg button{font-size:12px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);color:var(--dim)}
+.sugg button:hover{color:var(--txt);border-color:#33504A}
+
+/* ---------- misc ---------- */
+.bar-track{height:6px;border-radius:3px;background:#162325;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;background:var(--moss)}
+.risk{display:flex;height:26px;border-radius:7px;overflow:hidden;border:1px solid var(--line)}
+.risk div{display:grid;place-items:center;font-family:var(--ff-m);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase}
+.empty{padding:34px 18px;text-align:center;color:var(--dim);border:1px dashed var(--line);border-radius:var(--r)}
+.empty b{display:block;color:var(--txt);font-family:var(--ff-d);margin-bottom:5px}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#16262A;border:1px solid #2C4A46;padding:10px 16px;border-radius:11px;z-index:90;font-size:13.5px;box-shadow:0 12px 30px rgba(0,0,0,.5);animation:fade .15s}
+.tl{position:relative;padding-left:20px}
+.tl::before{content:'';position:absolute;left:5px;top:6px;bottom:6px;width:1px;background:var(--line)}
+.tl .ev{position:relative;padding:0 0 15px}
+.tl .ev::before{content:'';position:absolute;left:-18px;top:6px;width:7px;height:7px;border-radius:50%;background:var(--card2);border:1.5px solid var(--faint)}
+.tl .ev.hi::before{background:var(--moss);border-color:var(--moss)}
+.mobnav{display:none}
+.only-mob{display:none}
+
+@media(max-width:860px){
+  .rail{display:none}
+  main{padding:16px 14px 96px;max-width:100%}
+  h1{font-size:22px}
+  .only-mob{display:block}
+  .mobnav{
+    display:flex;position:fixed;left:0;right:0;bottom:0;z-index:50;
+    background:rgba(9,15,16,.94);backdrop-filter:blur(14px);border-top:1px solid var(--line);
+    padding:7px 6px calc(7px + env(safe-area-inset-bottom))
+  }
+  .mobnav a{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px;color:var(--faint);font-size:10px}
+  .mobnav a.on{color:var(--moss)}
+  .mobnav .ic{font-size:17px}
+  .fab{bottom:78px;right:14px;width:48px;height:48px}
+  .chatpanel{width:100%}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <nav class="rail" id="rail"></nav>
+  <main id="main"></main>
+</div>
+<nav class="mobnav" id="mobnav"></nav>
+<button class="fab" id="fab" title="Asistente">💬</button>
+<div id="overlay"></div>
+<script>
+/* ============================================================
+   BIOMA · núcleo
+   Estado, persistencia, semilla y motores de análisis.
+   ============================================================ */
+const uid = p => (p||'id') + '_' + Math.random().toString(36).slice(2, 9);
+const todayISO = () => new Date().toISOString().slice(0, 10);
+const nowISO = () => new Date().toISOString();
+const days = (a, b) => Math.round((new Date(b || nowISO()) - new Date(a)) / 864e5);
+const fmt = iso => { if (!iso) return '—'; const d = new Date(iso); return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }); };
+const fmtFull = iso => { if (!iso) return '—'; const d = new Date(iso); return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }); };
+const fmtHora = iso => { if (!iso) return ''; const d = new Date(iso); return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }); };
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const ago = iso => { if (!iso) return 'nunca'; const d = days(iso); return d <= 0 ? 'hoy' : d === 1 ? 'ayer' : `hace ${d} d`; };
+
+/* ---------- persistencia (artifact storage → localStorage → memoria) ---------- */
+const KEY = 'bioma:v1';
+let memory = null;
+const Store = {
+  async get() {
+    try { if (window.storage) { const r = await window.storage.get(KEY); return r ? JSON.parse(r.value) : null; } } catch (e) { }
+    try { const r = localStorage.getItem(KEY); if (r) return JSON.parse(r); } catch (e) { }
+    return memory;
+  },
+  async set(v) {
+    memory = v;
+    const s = JSON.stringify(v);
+    try { if (window.storage) { await window.storage.set(KEY, s); return; } } catch (e) { }
+    try { localStorage.setItem(KEY, s); } catch (e) { }
+  },
+  async clear() {
+    memory = null;
+    try { if (window.storage) await window.storage.delete(KEY); } catch (e) { }
+    try { localStorage.removeItem(KEY); } catch (e) { }
+  }
+};
+
+let S = null;          // estado global
+let saveT = null;
+function save() { clearTimeout(saveT); saveT = setTimeout(() => Store.set(S), 180); }
+
+/* ---------- rangos de referencia por tipo de parámetro ---------- */
+const PARAMS = {
+  temp: { label: 'Temperatura', unit: '°C', dec: 1 },
+  ph: { label: 'pH', unit: '', dec: 2 },
+  tds: { label: 'TDS', unit: 'ppm', dec: 0 },
+  gh: { label: 'GH', unit: '°d', dec: 0 },
+  kh: { label: 'KH', unit: '°d', dec: 0 },
+  nh3: { label: 'NH3/NH4', unit: 'mg/L', dec: 2 },
+  no2: { label: 'NO2', unit: 'mg/L', dec: 2 },
+  no3: { label: 'NO3', unit: 'mg/L', dec: 0 },
+  cl2: { label: 'Cloro', unit: 'mg/L', dec: 2 },
+  o2: { label: 'Oxígeno', unit: 'mg/L', dec: 1 },
+  hum: { label: 'Humedad', unit: '%', dec: 0 },
+  tcaliente: { label: 'T. zona caliente', unit: '°C', dec: 1 },
+  tfria: { label: 'T. zona fría', unit: '°C', dec: 1 },
+  uvi: { label: 'Índice UV', unit: 'UVI', dec: 1 },
+  peso: { label: 'Peso animal', unit: 'g', dec: 0 }
+};
+const RANGES = {
+  acuario: { temp: [24, 28], ph: [6.5, 8.2], nh3: [0, 0.02], no2: [0, 0.05], no3: [0, 40], tds: [100, 500] },
+  terrario: { tcaliente: [28, 32], tfria: [21, 26], hum: [50, 80], uvi: [2.5, 3.5] }
+};
+
+/* ============================================================
+   SEMILLA — construida a partir del Documento Maestro
+   Regla: nada inventado. status: 'confirmado' | 'probable' | 'pendiente'
+   ============================================================ */
+function seed() {
+  const t = todayISO();
+  const d = n => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10);
+
+  const E1 = 'eco_600', E2 = 'eco_18', E3 = 'eco_cam', E4 = 'eco_gamb';
+
+  const ecosystems = [
+    {
+      id: E1, name: 'Acuario 600 L', type: 'acuario', subtype: 'Dulce · selva inundada',
+      liters: 600, dims: '120 × 75 × 75 cm', status: 'ciclando', montaje: d(2),
+      concepto: 'Selva inundada / predator · oddball. Pocos protagonistas, mucha madera, Dragon Stone, corredor central abierto.',
+      soil: 'Soil negro activo (referencia: Oase Scaper Soil)', hardscape: 'Dragon Stone + raíces grandes; raíz diagonal central',
+      ubicacion: 'Casa, Mallorca', color: '#7FD1A6'
+    },
+    {
+      id: E2, name: 'Acuario 18 L', type: 'acuario', subtype: 'Dulce · nano',
+      liters: 18, dims: 'pendiente de medir', status: 'activo', montaje: null,
+      concepto: 'Nano de casa. Bajo mantenimiento, un protagonista.', soil: 'pendiente', hardscape: 'pendiente',
+      ubicacion: 'Casa, Mallorca', color: '#8FD6E8'
+    },
+    {
+      id: E3, name: 'Terrario camaleón pantera', type: 'terrario', subtype: 'Árboreo · tropical',
+      liters: null, dims: 'objetivo mínimo 60 × 60 × 120 cm (malla)', status: 'planificado', montaje: null,
+      concepto: 'Furcifer pardalis. Terrario de malla, altura sobre superficie, ventilación cruzada, plantas vivas y goteo.',
+      soil: 'Sin sustrato suelto en fase inicial (riesgo de impactación); bandeja de drenaje',
+      hardscape: 'Ramas horizontales de distintos diámetros + Ficus benjamina / Pothos',
+      ubicacion: 'Casa, Mallorca', color: '#A98BF5'
+    },
+    {
+      id: E4, name: 'Gambario', type: 'acuario', subtype: 'Dulce · invertebrados',
+      liters: null, dims: 'pendiente', status: 'idea', montaje: null,
+      concepto: 'Neocaridina davidi. Sin depredadores, musgo abundante, filtración esponja.',
+      soil: 'pendiente', hardscape: 'pendiente', ubicacion: 'Casa, Mallorca', color: '#D08A57'
+    }
+  ];
+
+  const A = (o) => Object.assign({
+    id: uid('an'), ecoId: E1, qty: 1, zona: 'fondo', estado: 'activo', ingreso: d(2),
+    sizeCm: null, adultCm: null, dificultad: 'medio', vida: null, dieta: '', comportamiento: '',
+    compat: '', incompat: '', clase: 'pez', ident: 'confirmado', nocturno: false, notas: '', foto: ''
+  }, o);
+
+  const animals = [
+    A({
+      id: 'an_bichir', nombre: 'Bichir albino', sci: 'Polypterus senegalus (albino)', ident: 'probable',
+      qty: 1, sizeCm: 8, adultCm: 30, zona: 'fondo', nocturno: true, vida: '10–15 años', dificultad: 'medio',
+      comportamiento: 'Depredador oportunista, crepuscular/nocturno, respirador aéreo. Gran escapista.',
+      dieta: 'Pellet carnívoro hundible, gamba/langostino troceado, lombriz, congelado. Evitar peces alimentadores.',
+      compat: 'Peces de tamaño similar o mayor, cuerpo robusto.',
+      incompat: 'Todo lo que quepa en su boca: Pseudomugil, bentosi, kuhli, gambas.',
+      notas: 'Prioridad: tapa sin huecos alrededor de tubos y cables.'
+    }),
+    A({
+      id: 'an_cuchillo', nombre: 'Cuchillo fantasma negro', sci: 'Apteronotus albifrons', ident: 'confirmado',
+      qty: 1, sizeCm: 6, adultCm: 42, zona: 'media', nocturno: true, vida: '10–15 años', dificultad: 'alto',
+      comportamiento: 'Nocturno, débilmente eléctrico. Necesita refugios oscuros y comer sin competencia.',
+      dieta: 'Larva roja, artemia, mysis, lombriz troceada, gamba fina; después pellet carnívoro.',
+      compat: 'Un único ejemplar.', incompat: 'Otro Apteronotus. Peces muy voraces en la comida.',
+      notas: '120 cm de largo pueden quedarse cortos cuando alcance 30–50 cm. Reevaluar bienestar.'
+    }),
+    A({
+      id: 'an_cteno', nombre: 'Ctenopoma leopardo', sci: 'Ctenopoma acutirostre', ident: 'confirmado',
+      qty: 1, sizeCm: 5, adultCm: 17, zona: 'media', vida: '8–10 años', dificultad: 'medio',
+      comportamiento: 'Laberíntido africano. Depredador de emboscada, inmóvil entre plantas y madera. Puede saltar.',
+      dieta: 'Congelados, larvas, artemia, mysis, lombriz, gamba, pellet carnívoro.',
+      compat: 'Peces de cuerpo alto y tamaño medio.', incompat: 'Cualquier pez que le quepa en la boca.'
+    }),
+    A({
+      id: 'an_gourami', nombre: 'Gourami azul', sci: 'Trichopodus trichopterus', ident: 'probable',
+      qty: 1, sizeCm: null, adultCm: 13, zona: 'superficie', vida: '4–6 años', dificultad: 'bajo',
+      comportamiento: 'Laberíntido, zona alta. Puede volverse territorial al madurar.',
+      dieta: 'Escama/gránulo de calidad, congelado.', incompat: 'Vigilar interacción territorial con el Ctenopoma.'
+    }),
+    A({
+      id: 'an_pseudo', nombre: 'Pseudomugil amarillo', sci: 'Pseudomugil furcatus', ident: 'confirmado',
+      qty: 7, sizeCm: 3, adultCm: 5, zona: 'superficie', vida: '2–3 años', dificultad: 'medio',
+      comportamiento: 'Gregario, activo, banco superior. Aporta el movimiento del acuario.',
+      dieta: 'Micro gránulo, artemia recién eclosionada, congelado fino.',
+      incompat: 'Presa futura de bichir y Ctenopoma.'
+    }),
+    A({
+      id: 'an_bentosi', nombre: 'Tetra bentosi', sci: 'Hyphessobrycon bentosi', ident: 'confirmado',
+      qty: 3, sizeCm: 3, adultCm: 4.5, zona: 'media', vida: '3–5 años', dificultad: 'bajo',
+      comportamiento: 'Gregario de zona media.', dieta: 'Escama, gránulo pequeño, congelado.',
+      notas: 'En un comunitario convencional pediría grupo mayor; aquí no se amplía porque es presa futura.'
+    }),
+    A({
+      id: 'an_kuhli', nombre: 'Kuhli', sci: 'Pangio spp.', ident: 'pendiente',
+      qty: 3, sizeCm: 6, adultCm: 10, zona: 'fondo', nocturno: true, vida: '5–10 años', dificultad: 'bajo',
+      comportamiento: 'Bentónico, serpentiforme, nocturno. Usa grietas, raíces y sustrato.',
+      dieta: 'Pastilla hundible, congelado, lombriz fina.',
+      incompat: 'Riesgo alto con el bichir adulto: misma franja horaria y misma zona.'
+    }),
+    A({
+      id: 'an_gobios', nombre: 'Gobios (2 azules + 1 arcoíris)', sci: 'Especie pendiente de identificar', ident: 'pendiente',
+      qty: 3, sizeCm: null, adultCm: null, zona: 'fondo', dificultad: 'medio',
+      comportamiento: 'Ocupan roca y fondo, comportamiento muy distinto al de los peces de columna.',
+      dieta: 'Congelado, pastilla hundible.',
+      notas: 'Sin identificación no se puede calcular compatibilidad adulta ni parámetros ideales.'
+    }),
+    A({
+      id: 'an_ancistrus', nombre: 'Ancistrus (2 normales + 1 albino)', sci: 'Ancistrus sp.', ident: 'probable',
+      qty: 3, sizeCm: null, adultCm: 13, zona: 'fondo', nocturno: true, vida: '8–12 años', dificultad: 'bajo',
+      comportamiento: 'Raspador nocturno. Necesita madera y cuevas.',
+      dieta: 'Pastilla vegetal, verdura escaldada (calabacín, pepino), madera para raspar.',
+      compat: 'Buen candidato a largo plazo: cuerpo y armadura suficientes.'
+    }),
+    A({
+      id: 'an_planorbis', nombre: 'Planorbis', sci: 'Planorbarius sp.', clase: 'molusco', ident: 'probable',
+      qty: 2, adultCm: 2, zona: 'fondo', dificultad: 'bajo',
+      comportamiento: 'Caracol de concha espiral. Se reproduce si sobra comida.',
+      incompat: 'Anentome helena los caza.'
+    }),
+    A({
+      id: 'an_helena', nombre: 'Caracol asesino', sci: 'Anentome helena', clase: 'molusco', ident: 'confirmado',
+      qty: 2, adultCm: 2, zona: 'fondo', dificultad: 'bajo',
+      comportamiento: 'Depredador de otros caracoles.', incompat: 'Planorbis del propio acuario.'
+    }),
+    A({
+      id: 'an_ranas', nombre: 'Ranas acuáticas albinas', sci: 'Xenopus laevis (albino)', clase: 'anfibio', ident: 'probable',
+      qty: 2, adultCm: 12, zona: 'fondo', dificultad: 'medio', vida: '10–15 años',
+      comportamiento: 'Respiran en superficie; vista muy pobre, buscan por olfato y tacto.',
+      dieta: 'Alimentación dirigida con pinza cerca del fondo. Comprobar que comen las dos.',
+      notas: '75 cm de altura y competencia por el alimento. Probable traslado a medio plazo.'
+    }),
+    A({
+      id: 'an_betta', ecoId: E2, nombre: 'Betta', sci: 'Betta splendens', ident: 'probable',
+      qty: 1, adultCm: 6, zona: 'superficie', vida: '3–5 años', dificultad: 'bajo',
+      comportamiento: 'Laberíntido, territorial. Prefiere corriente suave.',
+      dieta: 'Gránulo específico para betta, congelado ocasional. Ayuno 1 día/semana.',
+      notas: 'Habitantes del 18 L por confirmar en la próxima revisión.'
+    })
+  ];
+
+  const plants = [
+    { id: uid('pl'), ecoId: E1, nombre: 'Echinodorus', sci: 'Echinodorus sp.', zona: 'media/fondo', luz: 'media', co2: 'no', estado: 'creciendo', ingreso: d(2), notas: 'Hoja ancha. Abono en raíz.' },
+    { id: uid('pl'), ecoId: E1, nombre: 'Anubias', sci: 'Anubias barteri', zona: 'sobre madera', luz: 'baja', co2: 'no', estado: 'estable', ingreso: d(2), notas: 'Rizoma nunca enterrado.' },
+    { id: uid('pl'), ecoId: E1, nombre: 'Musgo', sci: 'Vesicularia / Taxiphyllum sp.', zona: 'madera y roca', luz: 'baja', co2: 'no', estado: 'anclando', ingreso: d(2), notas: 'Identificación exacta pendiente.' },
+    { id: uid('pl'), ecoId: E1, nombre: 'Tapizante de primer plano', sci: 'Pendiente de identificar', zona: 'primer plano', luz: 'media-alta', co2: 'no', estado: 'observación', ingreso: d(2), notas: 'Sin CO2 puede quedarse rala.' },
+    { id: uid('pl'), ecoId: E1, nombre: 'Flotante de superficie', sci: 'Pendiente de identificar', zona: 'superficie', luz: 'alta', co2: 'no', estado: 'creciendo', ingreso: d(2), notas: 'Rompe la luz y consume nitratos.' },
+    { id: uid('pl'), ecoId: E1, nombre: 'Bambú de la suerte', sci: 'Dracaena sanderiana', zona: 'emergente', luz: 'media', co2: 'no', estado: 'observación', ingreso: d(2), notas: 'No es planta acuática: solo raíces sumergidas.' }
+  ];
+
+  const equipment = [
+    { id: uid('eq'), ecoId: E1, nombre: 'Filtro exterior', marca: 'Fluval', modelo: '407', tipo: 'filtración', caudal: '1450 L/h', potencia: '24 W', instalado: d(2), freqDias: 60, ultimoMant: d(2), consumibles: 'Esponjas, Biomax, carbón', notas: 'Confirmado por fotografía. Prefiltro cada 3–4 semanas.' },
+    { id: uid('eq'), ecoId: E1, nombre: 'Pantalla LED', marca: 'Pendiente', modelo: 'Barra LED RGB+W', tipo: 'iluminación', caudal: '', potencia: 'pendiente', instalado: d(2), freqDias: 180, ultimoMant: null, consumibles: '', notas: 'Modelo y potencia por documentar.' },
+    { id: uid('eq'), ecoId: E1, nombre: 'Calentador', marca: 'Pendiente', modelo: 'Pendiente', tipo: 'climatización', caudal: '', potencia: 'pendiente', instalado: null, freqDias: 90, ultimoMant: null, consumibles: '', notas: 'Confirmar si hay calentador instalado y su consigna.' },
+    { id: uid('eq'), ecoId: E1, nombre: 'Tapa de seguridad', marca: 'Pendiente', modelo: 'Por fabricar', tipo: 'seguridad', caudal: '', potencia: '', instalado: null, freqDias: 30, ultimoMant: null, consumibles: '', notas: 'CRÍTICO: bichir escapista. Cierre completo con paso de mangueras sellado y malla de intercambio gaseoso.' }
+  ];
+
+  const params = [
+    { id: uid('p'), ecoId: E1, fecha: d(1), key: 'ph', val: 7.82, user: 'owner', metodo: 'medidor digital', nota: '' },
+    { id: uid('p'), ecoId: E1, fecha: d(1), key: 'tds', val: 439, user: 'owner', metodo: 'medidor digital', nota: '' },
+    { id: uid('p'), ecoId: E1, fecha: d(1), key: 'no2', val: 0, user: 'owner', metodo: 'test gotas', nota: 'Aprox. 0' },
+    { id: uid('p'), ecoId: E1, fecha: d(1), key: 'nh3', val: 0, user: 'owner', metodo: 'test gotas', nota: 'Aprox. 0' }
+  ];
+
+  const tasks = [
+    { id: uid('t'), ecoId: E1, titulo: 'Alimentar Pseudomugil y tetras', tipo: 'alimentacion', freqDias: 1, hora: '08:00', ultimo: null, activa: true, nota: 'Ración pequeña, se consume en 2 min.' },
+    { id: uid('t'), ecoId: E1, titulo: 'Alimentar depredadores (luz baja)', tipo: 'alimentacion', freqDias: 1, hora: '21:00', ultimo: null, activa: true, nota: 'Bichir, Ctenopoma y cuchillo. Alimento adaptado a talla juvenil.' },
+    { id: uid('t'), ecoId: E1, titulo: 'Comprobar que el cuchillo come', tipo: 'observacion', freqDias: 1, hora: '21:10', ultimo: null, activa: true, nota: 'Ofrecer cerca de su refugio tras bajar la luz.' },
+    { id: uid('t'), ecoId: E1, titulo: 'Comprobar que comen las dos ranas', tipo: 'observacion', freqDias: 1, hora: '21:15', ultimo: null, activa: true, nota: 'Alimentación dirigida con pinza.' },
+    { id: uid('t'), ecoId: E1, titulo: 'Test NH3/NH4 y NO2', tipo: 'parametros', freqDias: 2, hora: '19:00', ultimo: d(1), activa: true, nota: 'Fase post-introducción: cada 48 h.' },
+    { id: uid('t'), ecoId: E1, titulo: 'Revisar temperatura y equipos', tipo: 'observacion', freqDias: 1, hora: '09:00', ultimo: null, activa: true, nota: '' },
+    { id: uid('t'), ecoId: E1, titulo: 'Revisar cierre de la tapa', tipo: 'seguridad', freqDias: 7, hora: '', ultimo: null, activa: true, nota: 'Huecos alrededor de mangueras y cables.' },
+    { id: uid('t'), ecoId: E1, titulo: 'Cambio de agua 25–30 %', tipo: 'mantenimiento', freqDias: 14, hora: '', ultimo: d(2), activa: true, nota: 'Sifonado selectivo, no remover el soil.' },
+    { id: uid('t'), ecoId: E1, titulo: 'Limpiar prefiltro Fluval 407', tipo: 'mantenimiento', freqDias: 25, hora: '', ultimo: d(2), activa: true, nota: 'Enjuagar en agua del acuario, nunca del grifo.' },
+    { id: uid('t'), ecoId: E1, titulo: 'Medir crecimiento de bichir, cuchillo y Ctenopoma', tipo: 'crecimiento', freqDias: 30, hora: '', ultimo: d(2), activa: true, nota: 'Foto lateral con referencia de escala.' },
+    { id: uid('t'), ecoId: E2, titulo: 'Alimentar betta', tipo: 'alimentacion', freqDias: 1, hora: '09:00', ultimo: null, activa: true, nota: '3–4 gránulos. Un día de ayuno semanal.' },
+    { id: uid('t'), ecoId: E2, titulo: 'Revisar filtro y temperatura', tipo: 'observacion', freqDias: 3, hora: '', ultimo: null, activa: true, nota: '' }
+  ];
+
+  const measurements = [
+    { id: uid('m'), animalId: 'an_bichir', fecha: d(2), cm: 8, nota: 'Talla de entrada.' },
+    { id: uid('m'), animalId: 'an_cuchillo', fecha: d(2), cm: 6, nota: 'Talla de entrada.' },
+    { id: uid('m'), animalId: 'an_cteno', fecha: d(2), cm: 5, nota: 'Talla de entrada.' }
+  ];
+
+  const health = [
+    {
+      id: uid('h'), ecoId: 'eco_105', animalRef: 'Betta macho (acuario 105 L, histórico)', sintomas: 'Ojo turbio, flotación vertical, natación errática, letargia, inapetencia',
+      diagnostico: 'Posible reacción aguda al tratamiento u otro evento grave', tratamiento: 'Aislamiento en hospital', dosis: '',
+      inicio: d(240), fin: d(230), resultado: 'Documentado como antecedente. Relevante para futuras decisiones de medicación.', estado: 'cerrado'
+    },
+    {
+      id: uid('h'), ecoId: 'eco_105', animalRef: 'Botias (acuario 105 L, histórico)', sintomas: 'Puntos blancos', diagnostico: 'Ich',
+      tratamiento: 'eSHa EXIT', dosis: '20 gotas / ~100 L', inicio: d(250), fin: d(240), resultado: 'Episodio superado', estado: 'cerrado'
+    }
+  ];
+
+  const docs = [
+    {
+      id: uid('doc'), ecoId: E1, titulo: 'Si el filtro deja de funcionar', tipo: 'protocolo', cuerpo:
+        '1. Comprobar que está enchufado y que no ha saltado el diferencial.\n2. Cerrar las llaves, abrir el vaso y limpiar el rotor y su alojamiento.\n3. Cebar de nuevo y arrancar.\n4. Si tarda más de unas horas en volver, añadir un aireador para mantener oxígeno.\n5. No lavar el material biológico con agua del grifo: se pierde el filtro.'
+    },
+    {
+      id: uid('doc'), ecoId: E1, titulo: 'Si se va la luz', tipo: 'protocolo', cuerpo:
+        '1. No abrir la tapa ni alimentar.\n2. Si el corte pasa de 2–3 horas, remover suavemente la superficie cada cierto tiempo o usar aireador a pilas.\n3. Mantener la tapa cerrada para conservar temperatura.\n4. Al volver la luz, comprobar que filtro y calentador arrancan.'
+    },
+    {
+      id: uid('doc'), ecoId: E1, titulo: 'Si aparece un pez muerto', tipo: 'protocolo', cuerpo:
+        '1. Retirarlo de inmediato con red o pinza.\n2. Anotarlo en Salud con fecha, especie y aspecto; añadir foto si es posible.\n3. Medir NH3/NH4, NO2 y temperatura.\n4. No medicar sin diagnóstico.\n5. Observar al resto durante 48 h.'
+    },
+    {
+      id: uid('doc'), ecoId: E1, titulo: 'Si el agua está turbia', tipo: 'protocolo', cuerpo:
+        'Turbidez tras manipular soil o hardscape: es mecánica, se aclara con el filtro trabajando. No cambiar todo el agua.\nTurbidez blanquecina repentina sin manipulación: posible bloom bacteriano. Reducir alimentación, no limpiar el filtro y medir NH3 y NO2.'
+    },
+    {
+      id: uid('doc'), ecoId: E1, titulo: 'Seguridad de la tapa', tipo: 'protocolo', cuerpo:
+        'El bichir es un escapista notable y el Ctenopoma también salta. La tapa debe cerrar por completo, dejar intercambio gaseoso y bloquear los huecos alrededor de mangueras y cables. Revisar cada semana.'
+    },
+    {
+      id: uid('doc'), ecoId: E3, titulo: 'Ficha de proyecto · Furcifer pardalis', tipo: 'ficha', cuerpo:
+        'ALOJAMIENTO\nMalla o híbrido (fondo y laterales sólidos, frente y techo de malla). Mínimo adulto macho 60 × 60 × 120 cm; mejor 80 × 60 × 150. Nunca terrario de cristal cerrado: necesitan ventilación cruzada.\n\nTÉRMICA\nPunto de calor 28–31 °C medido en la rama de asoleo, ambiente 22–26 °C, caída nocturna a 18–22 °C. La caída nocturna no es opcional.\n\nUVB\nTubo T5 HO 5–6 % a lo largo del tercio superior, por fuera de la malla, con distancia calculada para UVI 2,5–3,0 en la rama alta. Sustituir cada 9–12 meses aunque siga encendiendo.\n\nAGUA\nNo beben de cuenco: gotero o sistema de lluvia. Nebulización larga al amanecer y otra al anochecer; el terrario debe secarse por completo entre ciclos.\n\nDIETA\nInsectos vivos variados (grillo, langosta, cucaracha dubia, gusano de la miel puntual) cargados 24 h antes. Calcio sin D3 en la mayoría de tomas, calcio con D3 y multivitamínico con vitamina A puntualmente, según pauta veterinaria.\n\nMANEJO\nSon animales de observación, no de manipulación. Estrés = color oscuro, ojos hundidos, boca abierta.\n\nANTES DE COMPRAR\nLocalizar veterinario de exóticos en Mallorca, tener la instalación montada y estabilizada 2–3 semanas con datos registrados, y confirmar proveedor de insectos vivos estable.'
+    }
+  ];
+
+  const timeline = [
+    { id: uid('tl'), ecoId: E1, fecha: d(2), tipo: 'montaje', texto: 'Montaje del acuario de 600 L. Parches de cristal sellados con JBL AquaSil; llenado progresivo tras el curado.', hi: true },
+    { id: uid('tl'), ecoId: E1, fecha: d(2), tipo: 'nota', texto: 'Descartado Bostik MSP Crystal H505: no apto para carga permanente de agua ni juntas de acristalamiento.', hi: false },
+    { id: uid('tl'), ecoId: E1, fecha: d(2), tipo: 'habitante', texto: 'Introducción de la población documentada: 23 peces, 4 caracoles y 2 ranas.', hi: true },
+    { id: uid('tl'), ecoId: E1, fecha: d(1), tipo: 'parametro', texto: 'pH 7,82 · TDS 439 ppm · NO2 ≈ 0 · NH3/NH4 ≈ 0.', hi: false },
+    { id: uid('tl'), ecoId: E1, fecha: d(1), tipo: 'nota', texto: 'Agua turbia por partículas en suspensión tras mover raíces y soil. Filtración trabajando.', hi: false }
+  ];
+
+  return {
+    v: 1,
+    users: [
+      { id: 'owner', nombre: 'Yo', rol: 'owner' },
+      { id: 'cuid', nombre: 'Cuidador', rol: 'cuidador' }
+    ],
+    currentUser: 'owner',
+    ecosystems, animals, plants, equipment, params, tasks, taskLogs: [], measurements, health, docs, timeline,
+    feedLogs: [],
+    caretaker: { activo: false, desde: null, hasta: null, persona: '', noHacer: ['No echar más comida de la indicada', 'No añadir productos ni medicación', 'No limpiar filtros', 'No cambiar la temperatura', 'No introducir animales'] },
+    chat: [],
+    lighting: [{ ecoId: E1, on: '14:00', off: '20:00', horas: 6, intensidad: '60 %', nota: 'Fotoperiodo corto porque el acuario está recién montado.' }],
+    audit: []
+  };
+}
+
+/* ---------- helpers de consulta ---------- */
+const eco = id => S.ecosystems.find(e => e.id === id);
+const animalsOf = id => S.animals.filter(a => a.ecoId === id && a.estado !== 'fallecido' && a.estado !== 'trasladado');
+const allAnimalsOf = id => S.animals.filter(a => a.ecoId === id);
+const me = () => S.users.find(u => u.id === S.currentUser) || S.users[0];
+const isOwner = () => me().rol === 'owner';
+const countAnimals = id => animalsOf(id).reduce((n, a) => n + (a.qty || 1), 0);
+
+function lastParam(ecoId, key) {
+  const l = S.params.filter(p => p.ecoId === ecoId && p.key === key).sort((a, b) => a.fecha < b.fecha ? 1 : -1);
+  return l[0] || null;
+}
+function series(ecoId, key) {
+  return S.params.filter(p => p.ecoId === ecoId && p.key === key).sort((a, b) => a.fecha < b.fecha ? -1 : 1);
+}
+function audit(accion, detalle) {
+  S.audit.unshift({ id: uid('au'), ts: nowISO(), user: me().nombre, accion, detalle });
+  S.audit = S.audit.slice(0, 400);
+}
+function addTimeline(ecoId, tipo, texto, hi) {
+  S.timeline.unshift({ id: uid('tl'), ecoId, fecha: todayISO(), tipo, texto, hi: !!hi });
+}
+
+/* ============================================================
+   MOTOR 1 · Tareas y vencimientos
+   ============================================================ */
+function taskDue(t) {
+  if (!t.activa) return null;
+  if (!t.ultimo) return { due: todayISO(), overdue: 0 };
+  const next = new Date(new Date(t.ultimo).getTime() + t.freqDias * 864e5).toISOString().slice(0, 10);
+  return { due: next, overdue: days(next) };
+}
+function tasksToday(ecoId) {
+  return S.tasks.filter(t => (!ecoId || t.ecoId === ecoId) && t.activa).map(t => {
+    const d = taskDue(t);
+    return { ...t, due: d.due, overdue: d.overdue, hoy: d.due <= todayISO() };
+  }).filter(t => t.hoy).sort((a, b) => (a.hora || '99') < (b.hora || '99') ? -1 : 1);
+}
+function doneToday(taskId) {
+  return S.taskLogs.find(l => l.taskId === taskId && l.fecha === todayISO()) || null;
+}
+
+/* ============================================================
+   MOTOR 2 · Crecimiento y compatibilidad futura
+   ============================================================ */
+function growthRate(animalId) {           // cm por mes
+  const m = S.measurements.filter(x => x.animalId === animalId).sort((a, b) => a.fecha < b.fecha ? -1 : 1);
+  if (m.length < 2) return null;
+  const f = m[0], l = m[m.length - 1];
+  const dd = days(f.fecha, l.fecha);
+  if (dd < 7) return null;
+  return ((l.cm - f.cm) / dd) * 30;
+}
+function currentSize(a) {
+  const m = S.measurements.filter(x => x.animalId === a.id).sort((a2, b) => a2.fecha < b.fecha ? 1 : -1);
+  return m[0] ? m[0].cm : a.sizeCm;
+}
+// Un depredador puede tragar presas de hasta ~35 % de su longitud.
+const PREY_RATIO = 0.35;
+function predationScan(ecoId) {
+  const list = animalsOf(ecoId);
+  const preds = list.filter(a => /depredador|emboscada|caza/i.test(a.comportamiento || '') || ['an_bichir', 'an_cteno'].includes(a.id));
+  const out = [];
+  preds.forEach(p => {
+    const now = currentSize(p) || 0;
+    const adult = p.adultCm || 0;
+    const rate = growthRate(p.id);
+    list.filter(v => v.id !== p.id && v.clase !== 'molusco').forEach(v => {
+      const vAdult = v.adultCm || currentSize(v) || 0;
+      if (!vAdult || !adult) return;
+      const needed = vAdult / PREY_RATIO;          // talla del depredador para tragarlo
+      if (needed > adult * 1.05) return;           // nunca llegará a ser una amenaza
+      const yaEs = now >= needed;
+      let meses = null;
+      if (!yaEs && rate && rate > 0) meses = Math.max(0, (needed - now) / rate);
+      out.push({ pred: p, prey: v, needed: Math.round(needed * 10) / 10, yaEs, meses, rate });
+    });
+  });
+  return out.sort((a, b) => (a.meses ?? 999) - (b.meses ?? 999));
+}
+
+/* ============================================================
+   MOTOR 3 · Alertas y estado del ecosistema
+   ============================================================ */
+function alertsFor(ecoId) {
+  const e = eco(ecoId); const out = []; const R = RANGES[e.type] || {};
+  const push = (nivel, txt, why, accion) => out.push({ nivel, txt, why, accion });
+
+  Object.keys(R).forEach(k => {
+    const p = lastParam(ecoId, k);
+    if (!p) return;
+    const [lo, hi] = R[k];
+    if (p.val > hi) push(k === 'nh3' || k === 'no2' ? 'crit' : 'warn',
+      `${PARAMS[k].label} por encima del rango: ${p.val} ${PARAMS[k].unit}`,
+      `Rango de referencia ${lo}–${hi}. Medido el ${fmtFull(p.fecha)}.`, null);
+    else if (p.val < lo) push('warn', `${PARAMS[k].label} por debajo del rango: ${p.val} ${PARAMS[k].unit}`,
+      `Rango de referencia ${lo}–${hi}. Medido el ${fmtFull(p.fecha)}.`, null);
+  });
+
+  // parámetros críticos sin medir en fase de ciclado
+  if (e.type === 'acuario' && (e.status === 'ciclando' || e.status === 'montaje')) {
+    ['nh3', 'no2'].forEach(k => {
+      const p = lastParam(ecoId, k);
+      if (!p) push('warn', `Sin registro de ${PARAMS[k].label}`, 'El acuario está ciclando: es el dato que decide si se puede seguir avanzando.', 'medir');
+      else if (days(p.fecha) >= 3) push('warn', `${PARAMS[k].label} sin medir desde hace ${days(p.fecha)} días`, 'En ciclado conviene medir cada 48 h.', 'medir');
+    });
+    if (!lastParam(ecoId, 'temp')) push('info', 'Temperatura sin registrar', 'No hay ninguna lectura de temperatura en este ecosistema. Sin ese dato no se puede evaluar el confort de los habitantes.', 'medir');
+    if (!lastParam(ecoId, 'no3')) push('info', 'NO3 sin registrar', 'Es la referencia para saber si el ciclo se ha completado.', 'medir');
+  }
+
+  // tendencia de nitratos
+  const s = series(ecoId, 'no3');
+  if (s.length >= 3) {
+    const l3 = s.slice(-3);
+    if (l3[2].val > l3[1].val && l3[1].val > l3[0].val)
+      push('warn', 'NO3 sube en las tres últimas lecturas', `${l3.map(x => x.val).join(' → ')} mg/L. Revisa alimentación y frecuencia de cambios de agua.`, null);
+  }
+
+  // tareas vencidas
+  S.tasks.filter(t => t.ecoId === ecoId && t.activa).forEach(t => {
+    const d = taskDue(t);
+    if (d.overdue >= Math.max(2, t.freqDias * 0.5) && !doneToday(t.id))
+      push(t.tipo === 'alimentacion' || t.tipo === 'seguridad' ? 'warn' : 'info',
+        `"${t.titulo}" lleva ${d.overdue} días de retraso`, `Frecuencia configurada: cada ${t.freqDias} días.`, 'tarea:' + t.id);
+  });
+
+  // depredación
+  predationScan(ecoId).forEach(r => {
+    if (r.yaEs) push('warn', `${r.pred.nombre} ya puede tragar a ${r.prey.nombre}`,
+      `${r.pred.nombre} mide ${currentSize(r.pred)} cm y ${r.prey.nombre} llega a ${r.prey.adultCm} cm. Umbral estimado: ${r.needed} cm.`, null);
+    else if (r.meses !== null && r.meses < 6) push('info', `${r.prey.nombre}: riesgo de depredación en ~${Math.round(r.meses)} meses`,
+      `Al ritmo medido, ${r.pred.nombre} alcanzará los ${r.needed} cm necesarios. No esperes a la primera baja para trasladarlos.`, null);
+  });
+
+  // identificaciones pendientes
+  const pend = animalsOf(ecoId).filter(a => a.ident === 'pendiente');
+  if (pend.length) push('info', `${pend.length} habitante(s) sin identificar`,
+    pend.map(a => a.nombre).join(', ') + '. Sin especie no se puede calcular compatibilidad adulta.', null);
+
+  const order = { crit: 0, warn: 1, info: 2 };
+  return out.sort((a, b) => order[a.nivel] - order[b.nivel]);
+}
+function ecoStatus(ecoId) {
+  const a = alertsFor(ecoId);
+  if (a.some(x => x.nivel === 'crit')) return { k: 'CRÍTICO', cls: 'bad', why: a.find(x => x.nivel === 'crit').txt };
+  const w = a.filter(x => x.nivel === 'warn');
+  if (w.length >= 2) return { k: 'ATENCIÓN', cls: 'warn', why: `${w.length} avisos abiertos` };
+  if (w.length === 1) return { k: 'OBSERVACIÓN', cls: 'warn', why: w[0].txt };
+  if (a.length) return { k: 'OBSERVACIÓN', cls: 'ok', why: a[0].txt };
+  return { k: 'ESTABLE', cls: 'ok', why: 'Sin avisos abiertos' };
+}
+
+/* ============================================================
+   MOTOR 4 · Recomendaciones razonadas
+   ============================================================ */
+function recommendations(ecoId) {
+  const e = eco(ecoId); const out = [];
+  const nAnimals = countAnimals(ecoId);
+  const edad = e.montaje ? days(e.montaje) : null;
+
+  if (e.type === 'acuario' && edad !== null && edad < 45 && nAnimals > 10) {
+    out.push({
+      t: 'No añadir más animales por ahora',
+      por: `El acuario tiene ${edad} días y ya sostiene ${nAnimals} animales introducidos en poco tiempo.`,
+      ev: 'Fecha de montaje y censo actual.',
+      acc: 'Medir NH3/NH4 y NO2 cada 48 h durante 7 días antes de plantear cualquier incorporación.',
+      urg: 'alta'
+    });
+  }
+  const lz = S.lighting.find(l => l.ecoId === ecoId);
+  if (lz && edad !== null && edad < 60) {
+    out.push({
+      t: `Mantener el fotoperiodo en ${lz.horas} h`,
+      por: 'Un acuario recién montado con soil activo y poca masa vegetal establecida es terreno fácil para las algas.',
+      ev: `Iluminación configurada ${lz.on}–${lz.off}.`,
+      acc: 'Subir a 7 h solo cuando las plantas muestren crecimiento nuevo claro y no haya algas filamentosas.',
+      urg: 'media'
+    });
+  }
+  const pend = animalsOf(ecoId).filter(a => a.ident === 'pendiente');
+  if (pend.length) out.push({
+    t: 'Cerrar la identificación pendiente',
+    por: 'La compatibilidad futura se calcula con el tamaño adulto, y sin especie no hay tamaño adulto.',
+    ev: pend.map(a => a.nombre).join(', '),
+    acc: 'Foto lateral con buena luz de cada ejemplar y registrarla en su ficha.',
+    urg: 'media'
+  });
+  const risk = predationScan(ecoId).filter(r => !r.yaEs && r.meses !== null && r.meses < 12);
+  if (risk.length) out.push({
+    t: 'Planificar la salida de los habitantes pequeños',
+    por: 'Varios habitantes entrarán en rango de presa dentro del próximo año al ritmo de crecimiento medido.',
+    ev: risk.slice(0, 3).map(r => `${r.prey.nombre} (~${Math.round(r.meses)} meses)`).join(', '),
+    acc: 'Decidir destino (otro acuario, club, tienda) antes de que ocurra, no después.',
+    urg: 'media'
+  });
+  if (!S.measurements.some(m => days(m.fecha) < 45)) out.push({
+    t: 'Registrar una medición de crecimiento',
+    por: 'Sin dos medidas separadas en el tiempo no se puede estimar cuándo llega el riesgo de depredación.',
+    ev: 'Última medición registrada hace más de 45 días.',
+    acc: 'Foto lateral con regla o referencia conocida y anotar la talla en la ficha de cada protagonista.',
+    urg: 'media'
+  });
+  const tapa = S.equipment.find(q => q.ecoId === ecoId && /tapa/i.test(q.nombre));
+  if (tapa && !tapa.instalado) out.push({
+    t: 'Instalar la tapa definitiva',
+    por: 'El bichir es un escapista notable y el Ctenopoma salta. Es el único fallo de este acuario que mata en una noche.',
+    ev: 'Equipamiento "Tapa de seguridad" sin fecha de instalación.',
+    acc: 'Cierre completo, paso de mangueras sellado y malla que permita intercambio gaseoso.',
+    urg: 'alta'
+  });
+  if (e.type === 'terrario' && e.status === 'planificado') out.push({
+    t: 'Montar y estabilizar el terrario antes de traer el animal',
+    por: 'El gradiente térmico, el UVI y los ciclos de humedad se ajustan con datos, y eso lleva semanas.',
+    ev: 'Ecosistema en estado planificado, sin habitantes.',
+    acc: 'Dos o tres semanas registrando zona caliente, zona fría, caída nocturna y humedad antes de la incorporación.',
+    urg: 'alta'
+  });
+  return out;
+}
+
+/* ============================================================
+   BIOMA · interfaz
+   ============================================================ */
+const $ = s => document.querySelector(s);
+let route = { view: 'hoy', id: null, tab: 'resumen' };
+
+function go(hash) { location.hash = hash; }
+function parseHash() {
+  const h = (location.hash || '#/hoy').slice(2).split('/');
+  if (h[0] === 'eco' && h[1]) return { view: 'eco', id: h[1], tab: h[2] || 'resumen' };
+  if (h[0] === 'animal' && h[1]) return { view: 'animal', id: h[1], tab: null };
+  return { view: h[0] || 'hoy', id: null, tab: null };
+}
+
+/* ---------- toast ---------- */
+let toastT;
+function toast(msg) {
+  let el = $('#toast');
+  if (!el) { el = document.createElement('div'); el.id = 'toast'; el.className = 'toast'; document.body.appendChild(el); }
+  el.textContent = msg; el.style.display = 'block';
+  clearTimeout(toastT); toastT = setTimeout(() => el.style.display = 'none', 2600);
+}
+
+/* ---------- modal genérico de formulario ---------- */
+let modalSubmit = null;
+function openForm(title, fields, values, onSubmit, submitLabel) {
+  values = values || {};
+  modalSubmit = () => {
+    const data = {};
+    fields.forEach(f => {
+      const el = document.getElementById('f_' + f.k);
+      if (!el) return;
+      let v = el.value;
+      if (f.type === 'number') v = v === '' ? null : parseFloat(v);
+      if (f.type === 'checkbox') v = el.checked;
+      data[f.k] = v;
+    });
+    const bad = fields.find(f => f.req && (data[f.k] === '' || data[f.k] == null));
+    if (bad) { toast('Falta ' + bad.label.toLowerCase()); return; }
+    onSubmit(data);
+    closeModal();
+  };
+  const body = fields.map(f => {
+    const v = values[f.k] != null ? values[f.k] : (f.def != null ? f.def : '');
+    let input;
+    if (f.type === 'select') input = `<select id="f_${f.k}">${f.options.map(o => {
+      const val = typeof o === 'string' ? o : o.v, lab = typeof o === 'string' ? o : o.l;
+      return `<option value="${esc(val)}" ${String(val) === String(v) ? 'selected' : ''}>${esc(lab)}</option>`;
+    }).join('')}</select>`;
+    else if (f.type === 'textarea') input = `<textarea id="f_${f.k}" placeholder="${esc(f.ph || '')}">${esc(v)}</textarea>`;
+    else input = `<input id="f_${f.k}" type="${f.type || 'text'}" step="${f.step || 'any'}" value="${esc(v)}" placeholder="${esc(f.ph || '')}">`;
+    return `<label class="f"><span class="lb">${esc(f.label)}</span>${input}${f.hint ? `<span class="hint">${esc(f.hint)}</span>` : ''}</label>`;
+  }).join('');
+  $('#overlay').innerHTML = `<div class="backdrop" data-close="1"><div class="modal">
+    <header class="between"><h2>${esc(title)}</h2><button class="btn sm ghost" data-close="1">✕</button></header>
+    <div class="body">${body}</div>
+    <footer><button class="btn ghost" data-close="1">Cancelar</button><button class="btn primary" id="mSubmit">${esc(submitLabel || 'Guardar')}</button></footer>
+  </div></div>`;
+  $('#mSubmit').onclick = () => modalSubmit();
+  $('#overlay').querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', e => { if (e.target === b) closeModal(); }));
+}
+function openInfo(title, html) {
+  $('#overlay').innerHTML = `<div class="backdrop" data-close="1"><div class="modal">
+    <header class="between"><h2>${esc(title)}</h2><button class="btn sm ghost" data-close="1">✕</button></header>
+    <div class="body">${html}</div>
+    <footer><button class="btn" data-close="1">Cerrar</button></footer></div></div>`;
+  $('#overlay').querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', e => { if (e.target === b) closeModal(); }));
+}
+function closeModal() { $('#overlay').innerHTML = ''; }
+
+/* ---------- gráfico de línea en SVG ---------- */
+function chart(data, opts) {
+  opts = opts || {};
+  if (!data.length) return `<div class="empty" style="padding:22px"><b>Sin datos todavía</b>Registra una medición para ver la evolución.</div>`;
+  if (data.length === 1) {
+    const p = data[0];
+    return `<div class="dim" style="font-size:13px">Una sola lectura: <span class="num">${p.val}</span> el ${fmtFull(p.fecha)}. Con dos o más se dibuja la tendencia.</div>`;
+  }
+  const W = 560, H = 150, P = 26;
+  const vals = data.map(d => d.val);
+  let min = Math.min(...vals), max = Math.max(...vals);
+  if (min === max) { min -= 1; max += 1; }
+  const pad = (max - min) * .15; min -= pad; max += pad;
+  const x = i => P + (i / (data.length - 1)) * (W - P * 2);
+  const y = v => H - P - ((v - min) / (max - min)) * (H - P * 2);
+  const pts = data.map((d, i) => `${x(i).toFixed(1)},${y(d.val).toFixed(1)}`).join(' ');
+  const area = `${P},${H - P} ${pts} ${W - P},${H - P}`;
+  const c = opts.color || 'var(--moss)';
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;overflow:visible" role="img" aria-label="Evolución">
+    <defs><linearGradient id="g${opts.id || ''}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${c}" stop-opacity=".22"/><stop offset="100%" stop-color="${c}" stop-opacity="0"/></linearGradient></defs>
+    <line x1="${P}" y1="${H - P}" x2="${W - P}" y2="${H - P}" stroke="#1E2E30"/>
+    <polygon points="${area}" fill="url(#g${opts.id || ''})"/>
+    <polyline points="${pts}" fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${data.map((d, i) => `<circle cx="${x(i)}" cy="${y(d.val)}" r="3" fill="${c}"><title>${d.val} · ${fmtFull(d.fecha)}</title></circle>`).join('')}
+    <text x="${P}" y="14" fill="#5E736C" font-size="10" font-family="IBM Plex Mono">${max.toFixed(opts.dec ?? 1)}</text>
+    <text x="${P}" y="${H - P + 15}" fill="#5E736C" font-size="10" font-family="IBM Plex Mono">${fmt(data[0].fecha)}</text>
+    <text x="${W - P}" y="${H - P + 15}" fill="#5E736C" font-size="10" font-family="IBM Plex Mono" text-anchor="end">${fmt(data[data.length - 1].fecha)}</text>
+  </svg>`;
+}
+
+/* ---------- navegación ---------- */
+const NAV = [
+  { k: 'hoy', ic: '◈', l: 'Hoy' },
+  { k: 'ecosistemas', ic: '❑', l: 'Ecosistemas' },
+  { k: 'crecimiento', ic: '↗', l: 'Crecimiento' },
+  { k: 'viaje', ic: '✈', l: 'Modo cuidador' },
+  { k: 'ajustes', ic: '⚙', l: 'Ajustes' }
+];
+function renderNav() {
+  const r = parseHash();
+  $('#rail').innerHTML = `
+    <div class="brand"><div class="mark"></div><div><b>Bioma</b><small>Ecosistemas</small></div></div>
+    ${NAV.map(n => `<a class="navlink ${r.view === n.k ? 'on' : ''}" href="#/${n.k}"><span class="ic">${n.ic}</span>${n.l}</a>`).join('')}
+    <div class="navsec">Mis ecosistemas</div>
+    ${S.ecosystems.map(e => {
+      const st = ecoStatus(e.id);
+      return `<a class="navlink ${r.view === 'eco' && r.id === e.id ? 'on' : ''}" href="#/eco/${e.id}">
+        <span class="ic" style="color:${e.color}">${e.type === 'terrario' ? '▲' : '▬'}</span>
+        <span class="truncate" style="flex:1">${esc(e.name)}</span>
+        <span style="width:7px;height:7px;border-radius:50%;background:${st.cls === 'bad' ? 'var(--alert)' : st.cls === 'warn' ? 'var(--warn)' : 'var(--moss)'}"></span></a>`;
+    }).join('')}
+    <div class="rail-foot">
+      <div class="row" style="padding:4px 8px">
+        <div style="flex:1"><div style="font-size:13.5px">${esc(me().nombre)}</div><div class="eyebrow">${me().rol}</div></div>
+        <button class="btn sm ghost" onclick="switchUser()">Cambiar</button>
+      </div>
+    </div>`;
+  $('#mobnav').innerHTML = NAV.map(n => `<a class="${r.view === n.k ? 'on' : ''}" href="#/${n.k}"><span class="ic">${n.ic}</span>${n.l === 'Modo cuidador' ? 'Cuidador' : n.l}</a>`).join('');
+}
+function switchUser() {
+  const i = S.users.findIndex(u => u.id === S.currentUser);
+  S.currentUser = S.users[(i + 1) % S.users.length].id;
+  save(); render(); toast('Ahora usas la app como ' + me().nombre + ' (' + me().rol + ')');
+}
+
+/* ---------- componentes ---------- */
+function columnStrip(ecoId) {
+  const list = animalsOf(ecoId);
+  const z = k => list.filter(a => a.zona === k).reduce((n, a) => n + (a.qty || 1), 0);
+  return `<div class="column">
+    <div class="zone z-top"><span>SUP</span><b>${z('superficie')}</b></div>
+    <div class="zone z-mid"><span>MED</span><b>${z('media')}</b></div>
+    <div class="zone z-bot"><span>FON</span><b>${z('fondo')}</b></div>
+  </div>`;
+}
+function ecoCard(e) {
+  const st = ecoStatus(e.id);
+  const t = tasksToday(e.id).filter(x => !doneToday(x.id));
+  const temp = lastParam(e.id, 'temp');
+  return `<div class="eco" onclick="go('#/eco/${e.id}')">
+    ${columnStrip(e.id)}
+    <div class="eco-body">
+      <div class="between" style="align-items:flex-start">
+        <div style="min-width:0">
+          <h2 class="truncate">${esc(e.name)}</h2>
+          <div class="eyebrow">${esc(e.dims || '')}${e.liters ? ' · ' + e.liters + ' L' : ''}</div>
+        </div>
+        <span class="pill ${st.cls}">${st.k}</span>
+      </div>
+      <div class="sep"></div>
+      <div class="row" style="flex-wrap:wrap;gap:6px">
+        <span class="tag">${countAnimals(e.id)} animales</span>
+        <span class="tag">${S.plants.filter(p => p.ecoId === e.id).length} plantas</span>
+        <span class="tag">${esc(e.status)}</span>
+        <span class="tag">${temp ? temp.val + ' °C' : 'temp. sin registrar'}</span>
+      </div>
+      <div class="dim" style="font-size:12.5px;margin-top:10px">
+        ${t.length ? `<b style="color:var(--txt)">${t.length}</b> tarea${t.length > 1 ? 's' : ''} pendiente${t.length > 1 ? 's' : ''} hoy` : 'Todo hecho por hoy'}
+        · ${st.why}
+      </div>
+    </div>
+  </div>`;
+}
+function alertRow(a) {
+  return `<div class="alert ${a.nivel}"><div class="bar"></div><div style="flex:1">
+    <div style="font-size:14px">${esc(a.txt)}</div><div class="why">${esc(a.why)}</div></div></div>`;
+}
+function metric(k, ecoId) {
+  const p = lastParam(ecoId, k), P = PARAMS[k];
+  if (!p) return `<div class="metric empty"><div class="k">${P.label}</div><div class="v">Sin registrar</div></div>`;
+  return `<div class="metric"><div class="k">${P.label}</div>
+    <div class="v">${p.val}<small> ${P.unit}</small></div>
+    <div class="d">${ago(p.fecha)}</div></div>`;
+}
+function taskRow(t, showEco) {
+  const log = doneToday(t.id);
+  const cls = log ? (log.estado === 'hecha' ? 'on' : log.estado === 'parcial' ? 'half' : 'skip') : '';
+  const ic = log ? (log.estado === 'hecha' ? '✓' : log.estado === 'parcial' ? '½' : '–') : '';
+  const e = eco(t.ecoId);
+  return `<div class="item ${log && log.estado === 'hecha' ? 'done' : ''}">
+    <button class="chk ${cls}" onclick="markTask('${t.id}')" title="Marcar">${ic}</button>
+    <div class="grow">
+      <div class="t">${esc(t.titulo)}</div>
+      <div class="s">${t.hora ? t.hora + ' · ' : ''}${showEco ? esc(e ? e.name : '') + ' · ' : ''}${t.overdue > 0 ? `<span style="color:var(--warn)">${t.overdue} d de retraso</span>` : 'cada ' + t.freqDias + ' d'}${log ? ' · ' + esc(log.user) + ' ' + fmtHora(log.ts) : ''}</div>
+    </div>
+    <button class="btn sm ghost" onclick="taskOptions('${t.id}')">···</button>
+  </div>`;
+}
+
+/* ---------- acciones de tareas ---------- */
+function markTask(id) {
+  const t = S.tasks.find(x => x.id === id);
+  const prev = doneToday(id);
+  if (prev) {                       // deshacer
+    S.taskLogs = S.taskLogs.filter(l => l.id !== prev.id);
+    audit('Tarea desmarcada', t.titulo);
+  } else {
+    S.taskLogs.push({ id: uid('log'), taskId: id, ecoId: t.ecoId, fecha: todayISO(), ts: nowISO(), user: me().nombre, estado: 'hecha', nota: '' });
+    t.ultimo = todayISO();
+    audit('Tarea completada', t.titulo);
+    if (t.tipo === 'alimentacion') S.feedLogs.push({ id: uid('fd'), ecoId: t.ecoId, ts: nowISO(), user: me().nombre, detalle: t.titulo });
+    if (t.freqDias >= 7) addTimeline(t.ecoId, 'mantenimiento', t.titulo + ' — realizado por ' + me().nombre, false);
+  }
+  save(); render();
+}
+function taskOptions(id) {
+  const t = S.tasks.find(x => x.id === id);
+  openInfo(t.titulo, `
+    <div class="dim" style="font-size:13.5px;margin-bottom:12px">${esc(t.nota || 'Sin notas.')}</div>
+    <div class="row" style="flex-wrap:wrap;gap:8px">
+      <button class="btn" onclick="logState('${id}','parcial')">Hecha a medias</button>
+      <button class="btn" onclick="logState('${id}','omitida')">Omitida hoy</button>
+      <button class="btn" onclick="postpone('${id}')">Posponer un día</button>
+      ${isOwner() ? `<button class="btn" onclick="editTask('${id}')">Editar</button>
+      <button class="btn" onclick="delTask('${id}')">Eliminar</button>` : ''}
+    </div>`);
+}
+function logState(id, estado) {
+  const t = S.tasks.find(x => x.id === id);
+  S.taskLogs = S.taskLogs.filter(l => !(l.taskId === id && l.fecha === todayISO()));
+  S.taskLogs.push({ id: uid('log'), taskId: id, ecoId: t.ecoId, fecha: todayISO(), ts: nowISO(), user: me().nombre, estado, nota: '' });
+  if (estado === 'parcial') t.ultimo = todayISO();
+  audit('Tarea marcada como ' + estado, t.titulo);
+  save(); closeModal(); render();
+}
+function postpone(id) {
+  const t = S.tasks.find(x => x.id === id);
+  t.ultimo = new Date(Date.now() - (t.freqDias - 1) * 864e5).toISOString().slice(0, 10);
+  audit('Tarea pospuesta', t.titulo); save(); closeModal(); render(); toast('Aplazada a mañana');
+}
+function delTask(id) {
+  if (!isOwner()) return toast('Solo el propietario puede eliminar tareas');
+  S.tasks = S.tasks.filter(t => t.id !== id); save(); closeModal(); render();
+}
+function editTask(id) {
+  const t = S.tasks.find(x => x.id === id);
+  taskForm(t.ecoId, t);
+}
+function taskForm(ecoId, t) {
+  openForm(t ? 'Editar tarea' : 'Nueva tarea', [
+    { k: 'titulo', label: 'Qué hay que hacer', req: 1, ph: 'Alimentar depredadores' },
+    { k: 'tipo', label: 'Tipo', type: 'select', options: ['alimentacion', 'mantenimiento', 'parametros', 'observacion', 'seguridad', 'crecimiento', 'salud'] },
+    { k: 'freqDias', label: 'Cada cuántos días', type: 'number', def: 1, req: 1 },
+    { k: 'hora', label: 'Hora (opcional)', type: 'time' },
+    { k: 'nota', label: 'Instrucciones para quien la haga', type: 'textarea', ph: 'Cantidad, dónde, qué mirar…' }
+  ], t, d => {
+    if (t) Object.assign(t, d);
+    else S.tasks.push({ id: uid('t'), ecoId, activa: true, ultimo: null, ...d });
+    audit(t ? 'Tarea editada' : 'Tarea creada', d.titulo); save(); render(); toast('Guardado');
+  });
+}
+
+/* ============================================================
+   VISTAS
+   ============================================================ */
+function viewHoy() {
+  const all = S.ecosystems.map(e => ({ e, t: tasksToday(e.id) })).filter(x => x.t.length);
+  const pend = all.reduce((n, x) => n + x.t.filter(t => !doneToday(t.id)).length, 0);
+  const crit = S.ecosystems.flatMap(e => alertsFor(e.id).filter(a => a.nivel === 'crit' || a.nivel === 'warn').map(a => ({ e, a })));
+  const hora = new Date().getHours();
+  const saludo = hora < 6 ? 'Buenas noches' : hora < 14 ? 'Buenos días' : hora < 21 ? 'Buenas tardes' : 'Buenas noches';
+
+  return `
+  <div class="pagehead">
+    <div><div class="eyebrow">${new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+      <h1>${saludo}</h1>
+      <div class="dim" style="margin-top:4px">${pend === 0 ? 'No queda nada pendiente hoy.' : `${pend} cosa${pend > 1 ? 's' : ''} pendiente${pend > 1 ? 's' : ''} en ${all.length} ecosistema${all.length > 1 ? 's' : ''}.`}</div></div>
+    <div class="row"><button class="btn" onclick="go('#/ecosistemas')">Ver ecosistemas</button></div>
+  </div>
+
+  ${S.caretaker.activo ? `<div class="alert warn" style="margin-bottom:16px"><div class="bar"></div><div>
+      <div>Modo cuidador activo · ${esc(S.caretaker.persona || 'sin nombre')}</div>
+      <div class="why">Del ${fmtFull(S.caretaker.desde)} al ${fmtFull(S.caretaker.hasta)}. <a href="#/viaje" style="color:var(--moss)">Ver instrucciones</a></div></div></div>` : ''}
+
+  ${crit.length ? `<div class="stack" style="margin-bottom:20px">
+    <div class="eyebrow">Requiere atención</div>
+    ${crit.slice(0, 4).map(c => alertRow({ ...c.a, why: c.e.name + ' · ' + c.a.why })).join('')}
+  </div>` : ''}
+
+  ${all.length ? all.map(x => `
+    <div class="card pad0" style="margin-bottom:14px">
+      <div class="between" style="padding:13px 16px;border-bottom:1px solid var(--line)">
+        <div class="row"><span style="width:8px;height:8px;border-radius:50%;background:${x.e.color}"></span>
+          <h3>${esc(x.e.name)}</h3></div>
+        <a class="btn sm ghost" href="#/eco/${x.e.id}">Abrir</a>
+      </div>
+      <div class="list">${x.t.map(t => taskRow(t, false)).join('')}</div>
+    </div>`).join('')
+      : `<div class="empty"><b>Nada programado para hoy</b>Crea rutinas dentro de cada ecosistema y aparecerán aquí.</div>`}
+
+  <div class="card" style="margin-top:6px">
+    <div class="eyebrow">Registro rápido</div>
+    <div class="row" style="flex-wrap:wrap;gap:8px;margin-top:10px">
+      ${S.ecosystems.filter(e => e.status !== 'idea' && e.status !== 'planificado').map(e =>
+        `<button class="btn" onclick="paramForm('${e.id}')">Medir agua · ${esc(e.name)}</button>`).join('')}
+      <button class="btn" onclick="go('#/crecimiento')">Registrar crecimiento</button>
+    </div>
+  </div>`;
+}
+
+function viewEcosistemas() {
+  return `
+  <div class="pagehead">
+    <div><div class="eyebrow">${S.ecosystems.length} fichas</div><h1>Ecosistemas</h1></div>
+    ${isOwner() ? `<button class="btn primary" onclick="ecoWizard()">+ Nuevo ecosistema</button>` : ''}
+  </div>
+  <div class="grid g2">${S.ecosystems.map(ecoCard).join('')}</div>`;
+}
+
+const TABS = [
+  ['resumen', 'Resumen'], ['habitantes', 'Habitantes'], ['plantas', 'Plantas'], ['equipo', 'Equipamiento'],
+  ['parametros', 'Parámetros'], ['alimentacion', 'Alimentación'], ['mantenimiento', 'Mantenimiento'],
+  ['luz', 'Iluminación'], ['salud', 'Salud'], ['diario', 'Diario'], ['docs', 'Documentación']
+];
+function viewEco(id, tab) {
+  const e = eco(id); if (!e) return `<div class="empty"><b>Ese ecosistema ya no existe</b></div>`;
+  const st = ecoStatus(id);
+  const head = `
+  <div class="pagehead">
+    <div>
+      <div class="eyebrow">${esc(e.subtype)} · ${esc(e.ubicacion)}</div>
+      <h1>${esc(e.name)}</h1>
+      <div class="row" style="margin-top:7px;gap:7px;flex-wrap:wrap">
+        <span class="pill ${st.cls}">${st.k}</span>
+        <span class="tag">${esc(e.dims)}</span>${e.liters ? `<span class="tag">${e.liters} L</span>` : ''}
+        <span class="tag">${esc(e.status)}</span>
+        ${e.montaje ? `<span class="tag">${days(e.montaje)} días</span>` : ''}
+      </div>
+    </div>
+    ${isOwner() ? `<div class="row"><button class="btn" onclick="ecoEdit('${id}')">Editar ficha</button></div>` : ''}
+  </div>
+  <div class="tabs">${TABS.map(t => `<a class="tab ${tab === t[0] ? 'on' : ''}" href="#/eco/${id}/${t[0]}">${t[1]}</a>`).join('')}</div>`;
+  const body = ({
+    resumen: tabResumen, habitantes: tabHabitantes, plantas: tabPlantas, equipo: tabEquipo,
+    parametros: tabParametros, alimentacion: tabAlimentacion, mantenimiento: tabMantenimiento,
+    luz: tabLuz, salud: tabSalud, diario: tabDiario, docs: tabDocs
+  }[tab] || tabResumen)(e);
+  return head + body;
+}
+
+function tabResumen(e) {
+  const al = alertsFor(e.id), rec = recommendations(e.id);
+  const keys = e.type === 'terrario' ? ['tcaliente', 'tfria', 'hum', 'uvi'] : ['temp', 'ph', 'tds', 'nh3', 'no2', 'no3'];
+  const t = tasksToday(e.id);
+  return `
+  <div class="grid g2" style="align-items:start">
+    <div class="stack">
+      <div class="card">
+        <div class="eyebrow">Concepto</div>
+        <p style="margin-top:7px;font-size:14.5px">${esc(e.concepto)}</p>
+        <div class="sep"></div>
+        <div class="dim" style="font-size:13px"><b style="color:var(--txt)">Sustrato:</b> ${esc(e.soil)}<br>
+        <b style="color:var(--txt)">Hardscape:</b> ${esc(e.hardscape)}</div>
+      </div>
+      <div>
+        <div class="between" style="margin-bottom:9px"><div class="eyebrow">Últimas lecturas</div>
+          <button class="btn sm" onclick="paramForm('${e.id}')">+ Medir</button></div>
+        <div class="grid g4">${keys.map(k => metric(k, e.id)).join('')}</div>
+      </div>
+      <div class="card">
+        <div class="eyebrow">Distribución por zonas</div>
+        <div class="row" style="margin-top:10px;align-items:stretch;gap:14px">
+          <div style="width:52px"><div class="eco" style="border:none;background:none"><div class="column" style="height:130px;border-right:none;border-radius:10px;overflow:hidden">${columnStrip(e.id).replace('<div class="column">', '').replace(/<\/div>$/, '')}</div></div></div>
+          <div style="flex:1;font-size:13px" class="dim">
+            ${['superficie', 'media', 'fondo'].map(z => {
+              const l = animalsOf(e.id).filter(a => a.zona === z);
+              return `<div style="margin-bottom:7px"><span class="eyebrow">${z}</span><br>${l.length ? l.map(a => esc(a.nombre) + ' ×' + a.qty).join(' · ') : 'sin habitantes'}</div>`;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="stack">
+      <div>
+        <div class="eyebrow" style="margin-bottom:9px">Avisos abiertos (${al.length})</div>
+        <div class="stack" style="gap:8px">${al.length ? al.map(alertRow).join('') : `<div class="card dim" style="font-size:13.5px">Sin avisos. Todo dentro de rango y sin tareas vencidas.</div>`}</div>
+      </div>
+      <div>
+        <div class="between" style="margin-bottom:9px"><div class="eyebrow">Hoy</div><button class="btn sm" onclick="taskForm('${e.id}')">+ Tarea</button></div>
+        <div class="card pad0"><div class="list">${t.length ? t.map(x => taskRow(x, false)).join('') : '<div class="item dim">Nada pendiente hoy.</div>'}</div></div>
+      </div>
+      ${rec.length ? `<div>
+        <div class="eyebrow" style="margin-bottom:9px">Recomendaciones</div>
+        <div class="stack" style="gap:10px">${rec.map(r => `<div class="card">
+          <div class="row" style="justify-content:space-between"><h3>${esc(r.t)}</h3><span class="pill ${r.urg === 'alta' ? 'warn' : ''}">${r.urg}</span></div>
+          <div class="dim" style="font-size:13px;margin-top:6px"><b style="color:var(--txt)">Por qué:</b> ${esc(r.por)}</div>
+          <div class="dim" style="font-size:13px;margin-top:4px"><b style="color:var(--txt)">Evidencia:</b> ${esc(r.ev)}</div>
+          <div style="font-size:13px;margin-top:6px;color:var(--moss)">→ ${esc(r.acc)}</div>
+        </div>`).join('')}</div></div>` : ''}
+    </div>
+  </div>`;
+}
+
+function identPill(a) {
+  return a.ident === 'confirmado' ? '<span class="pill ok">confirmado</span>'
+    : a.ident === 'probable' ? '<span class="pill warn">probable</span>'
+      : '<span class="pill bad">sin identificar</span>';
+}
+function tabHabitantes(e) {
+  const list = allAnimalsOf(e.id);
+  const risk = predationScan(e.id);
+  return `
+  <div class="between" style="margin-bottom:12px">
+    <div class="dim">${countAnimals(e.id)} animales vivos · ${list.length} fichas</div>
+    ${isOwner() ? `<button class="btn primary" onclick="animalForm('${e.id}')">+ Añadir habitante</button>` : ''}
+  </div>
+  ${risk.length ? `<div class="card" style="margin-bottom:14px">
+    <div class="eyebrow">Compatibilidad ahora vs. futura</div>
+    <div class="stack" style="gap:9px;margin-top:10px">
+      ${risk.slice(0, 6).map(r => {
+        const pct = r.yaEs ? 100 : r.meses !== null ? Math.min(95, Math.round(100 - r.meses * 8)) : 25;
+        return `<div>
+          <div class="between" style="font-size:13.5px"><span>${esc(r.prey.nombre)} <span class="faint">frente a</span> ${esc(r.pred.nombre)}</span>
+          <span class="pill ${r.yaEs ? 'bad' : r.meses !== null && r.meses < 6 ? 'warn' : ''}">${r.yaEs ? 'riesgo actual' : r.meses !== null ? '~' + Math.round(r.meses) + ' meses' : 'riesgo futuro'}</span></div>
+          <div class="bar-track" style="margin-top:5px"><div class="bar-fill" style="width:${pct}%;background:${r.yaEs ? 'var(--alert)' : 'var(--warn)'}"></div></div>
+          <div class="faint" style="font-size:11.5px;margin-top:4px">Umbral estimado: el depredador traga presas de hasta el 35 % de su longitud → necesita ${r.needed} cm.${r.rate ? ' Ritmo medido: ' + r.rate.toFixed(1) + ' cm/mes.' : ' Sin ritmo medido todavía.'}</div>
+        </div>`;
+      }).join('')}
+    </div></div>` : ''}
+  <div class="card pad0"><div class="list">
+    ${list.map(a => `<div class="item tap" onclick="go('#/animal/${a.id}')">
+      <div style="width:38px;height:38px;border-radius:10px;background:${a.clase === 'anfibio' ? '#1B2438' : a.clase === 'molusco' ? '#221A12' : '#152522'};display:grid;place-items:center;font-size:15px">${a.clase === 'anfibio' ? '◕' : a.clase === 'molusco' ? '@' : a.nocturno ? '☾' : '≈'}</div>
+      <div class="grow">
+        <div class="t">${esc(a.nombre)} <span class="faint num">×${a.qty}</span></div>
+        <div class="s"><i>${esc(a.sci)}</i> · ${esc(a.zona)}${currentSize(a) ? ' · ' + currentSize(a) + ' cm' : ''}${a.adultCm ? ' → ' + a.adultCm + ' cm' : ''}</div>
+      </div>
+      ${a.estado !== 'activo' ? `<span class="pill">${esc(a.estado)}</span>` : ''}
+      ${identPill(a)}
+    </div>`).join('') || '<div class="item dim">Todavía no hay habitantes registrados.</div>'}
+  </div></div>`;
+}
+
+function viewAnimal(id) {
+  const a = S.animals.find(x => x.id === id); if (!a) return '<div class="empty"><b>Ficha no encontrada</b></div>';
+  const e = eco(a.ecoId);
+  const ms = S.measurements.filter(m => m.animalId === id).sort((x, y) => x.fecha < y.fecha ? -1 : 1);
+  const rate = growthRate(id);
+  const risks = predationScan(a.ecoId).filter(r => r.pred.id === id || r.prey.id === id);
+  const F = (l, v) => v ? `<div style="margin-bottom:9px"><div class="eyebrow">${l}</div><div style="font-size:14px;margin-top:2px">${esc(v)}</div></div>` : '';
+  return `
+  <div class="pagehead">
+    <div><a class="eyebrow" href="#/eco/${e.id}/habitantes">← ${esc(e.name)}</a>
+      <h1>${esc(a.nombre)}</h1>
+      <div class="row" style="gap:7px;margin-top:6px;flex-wrap:wrap">${identPill(a)}<span class="tag"><i>${esc(a.sci)}</i></span>
+      <span class="tag">×${a.qty}</span><span class="tag">${esc(a.zona)}</span>${a.nocturno ? '<span class="tag">nocturno</span>' : ''}</div></div>
+    ${isOwner() ? `<div class="row"><button class="btn" onclick="measureForm('${id}')">+ Medida</button><button class="btn" onclick="animalForm('${e.id}','${id}')">Editar</button></div>` : ''}
+  </div>
+  <div class="grid g2" style="align-items:start">
+    <div class="stack">
+      <div class="card">
+        <div class="between"><div class="eyebrow">Crecimiento</div>
+          <span class="num dim" style="font-size:12px">${rate ? rate.toFixed(1) + ' cm/mes' : 'ritmo no calculable'}</span></div>
+        <div style="margin-top:10px">${chart(ms.map(m => ({ fecha: m.fecha, val: m.cm })), { id: 'gr', color: 'var(--wood)', dec: 1 })}</div>
+        ${a.adultCm ? `<div class="sep"></div><div class="dim" style="font-size:13px">
+          Talla actual <b class="num" style="color:var(--txt)">${currentSize(a) ?? '—'} cm</b> · talla adulta esperada <b class="num" style="color:var(--txt)">${a.adultCm} cm</b>
+          ${rate && currentSize(a) ? `<br>A este ritmo alcanzaría la talla adulta hacia ${new Date(Date.now() + ((a.adultCm - currentSize(a)) / rate) * 30 * 864e5).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}. Es una proyección lineal: el crecimiento real se frena al acercarse a la talla adulta.` : ''}
+        </div>` : ''}
+        ${ms.length ? `<div class="sep"></div><div class="list">${ms.slice().reverse().map(m => `<div class="item" style="padding:7px 0;border:none"><div class="grow"><div class="t num">${m.cm} cm</div><div class="s">${fmtFull(m.fecha)}${m.nota ? ' · ' + esc(m.nota) : ''}</div></div></div>`).join('')}</div>` : ''}
+      </div>
+      ${risks.length ? `<div class="card"><div class="eyebrow">Compatibilidad calculada</div>
+        <div class="stack" style="gap:8px;margin-top:9px">${risks.slice(0, 6).map(r => `<div style="font-size:13.5px">
+          ${r.pred.id === id ? `Puede llegar a depredar a <b>${esc(r.prey.nombre)}</b>` : `Puede ser presa de <b>${esc(r.pred.nombre)}</b>`}
+          — <span class="${r.yaEs ? 'pill bad' : 'pill warn'}">${r.yaEs ? 'ya en rango' : r.meses !== null ? '~' + Math.round(r.meses) + ' meses' : 'futuro, sin ritmo medido'}</span>
+        </div>`).join('')}</div></div>` : ''}
+    </div>
+    <div class="stack">
+      <div class="card">
+        ${F('Comportamiento', a.comportamiento)}${F('Dieta', a.dieta)}${F('Compatible con', a.compat)}
+        ${F('Incompatible con', a.incompat)}${F('Esperanza de vida', a.vida)}${F('Dificultad', a.dificultad)}
+        ${F('Fecha de incorporación', a.ingreso ? fmtFull(a.ingreso) : '')}${F('Notas', a.notas)}
+      </div>
+      <div class="card">
+        <div class="eyebrow">Estado</div>
+        <div class="row" style="flex-wrap:wrap;gap:6px;margin-top:9px">
+          ${['activo', 'observacion', 'cuarentena', 'tratamiento', 'trasladado', 'fallecido'].map(s =>
+            `<button class="btn sm ${a.estado === s ? 'primary' : ''}" onclick="setEstado('${id}','${s}')">${s}</button>`).join('')}
+        </div>
+        <div class="hint">Los animales trasladados o fallecidos no se borran: dejan de contar en el censo y permanecen en el histórico.</div>
+      </div>
+    </div>
+  </div>`;
+}
+function setEstado(id, s) {
+  const a = S.animals.find(x => x.id === id);
+  if (!isOwner() && (s === 'fallecido' || s === 'trasladado')) return toast('Un cuidador no puede cerrar una ficha');
+  a.estado = s; audit('Estado de habitante', a.nombre + ' → ' + s);
+  addTimeline(a.ecoId, 'habitante', `${a.nombre}: estado cambiado a ${s}.`, s === 'fallecido');
+  save(); render();
+}
+function measureForm(id) {
+  const a = S.animals.find(x => x.id === id);
+  openForm('Medida de ' + a.nombre, [
+    { k: 'fecha', label: 'Fecha', type: 'date', def: todayISO(), req: 1 },
+    { k: 'cm', label: 'Longitud en cm', type: 'number', req: 1, ph: '8.5' },
+    { k: 'nota', label: 'Observaciones', type: 'textarea', ph: 'Estado corporal, coloración, apetito…' }
+  ], null, d => {
+    S.measurements.push({ id: uid('m'), animalId: id, ...d });
+    a.sizeCm = d.cm;
+    audit('Medida registrada', `${a.nombre} ${d.cm} cm`);
+    addTimeline(a.ecoId, 'crecimiento', `${a.nombre}: ${d.cm} cm.`, false);
+    save(); render(); toast('Medida guardada');
+  });
+}
+function animalForm(ecoId, id) {
+  const a = id ? S.animals.find(x => x.id === id) : null;
+  openForm(a ? 'Editar habitante' : 'Añadir habitante', [
+    { k: 'nombre', label: 'Nombre común', req: 1 },
+    { k: 'sci', label: 'Nombre científico', ph: 'Déjalo vacío si no lo sabes' },
+    { k: 'ident', label: 'Identificación', type: 'select', options: ['confirmado', 'probable', 'pendiente'], def: 'pendiente' },
+    { k: 'clase', label: 'Grupo', type: 'select', options: ['pez', 'anfibio', 'reptil', 'crustaceo', 'molusco', 'insecto', 'otro'] },
+    { k: 'qty', label: 'Cantidad', type: 'number', def: 1, req: 1 },
+    { k: 'zona', label: 'Zona que ocupa', type: 'select', options: ['superficie', 'media', 'fondo', 'rama alta', 'rama media', 'suelo'] },
+    { k: 'sizeCm', label: 'Talla actual (cm)', type: 'number' },
+    { k: 'adultCm', label: 'Talla adulta esperada (cm)', type: 'number', hint: 'Es el dato con el que se calcula el riesgo de depredación futuro.' },
+    { k: 'ingreso', label: 'Fecha de incorporación', type: 'date', def: todayISO() },
+    { k: 'comportamiento', label: 'Comportamiento', type: 'textarea' },
+    { k: 'dieta', label: 'Dieta', type: 'textarea' },
+    { k: 'notas', label: 'Notas', type: 'textarea' }
+  ], a, d => {
+    if (a) { Object.assign(a, d); audit('Habitante editado', d.nombre); }
+    else {
+      const n = { id: uid('an'), ecoId, estado: 'activo', nocturno: false, compat: '', incompat: '', dificultad: 'medio', vida: '', ...d };
+      S.animals.push(n);
+      if (d.sizeCm) S.measurements.push({ id: uid('m'), animalId: n.id, fecha: d.ingreso || todayISO(), cm: d.sizeCm, nota: 'Talla de entrada.' });
+      audit('Habitante añadido', d.nombre);
+      addTimeline(ecoId, 'habitante', `Se incorpora ${d.nombre} ×${d.qty}${d.sizeCm ? ' (' + d.sizeCm + ' cm)' : ''}.`, true);
+    }
+    save(); render(); toast('Ficha guardada');
+  });
+}
+
+function tabPlantas(e) {
+  const l = S.plants.filter(p => p.ecoId === e.id);
+  return `<div class="between" style="margin-bottom:12px"><div class="dim">${l.length} fichas de planta</div>
+    ${isOwner() ? `<button class="btn primary" onclick="plantForm('${e.id}')">+ Añadir planta</button>` : ''}</div>
+  <div class="grid g2">${l.map(p => `<div class="card">
+    <div class="between"><h3>${esc(p.nombre)}</h3><span class="pill ${p.estado === 'creciendo' ? 'ok' : ''}">${esc(p.estado)}</span></div>
+    <div class="dim" style="font-size:12.5px;margin-top:3px"><i>${esc(p.sci)}</i></div>
+    <div class="sep"></div>
+    <div class="row" style="gap:6px;flex-wrap:wrap"><span class="tag">${esc(p.zona)}</span><span class="tag">luz ${esc(p.luz)}</span><span class="tag">CO₂ ${esc(p.co2)}</span></div>
+    ${p.notas ? `<div class="dim" style="font-size:13px;margin-top:9px">${esc(p.notas)}</div>` : ''}
+  </div>`).join('') || `<div class="empty"><b>Sin plantas registradas</b>Añade las que ya están dentro para poder seguir su evolución.</div>`}</div>`;
+}
+function plantForm(ecoId) {
+  openForm('Añadir planta', [
+    { k: 'nombre', label: 'Nombre', req: 1 }, { k: 'sci', label: 'Nombre científico', def: 'Pendiente de identificar' },
+    { k: 'zona', label: 'Zona' }, { k: 'luz', label: 'Luz', type: 'select', options: ['baja', 'media', 'media-alta', 'alta'] },
+    { k: 'co2', label: 'CO₂', type: 'select', options: ['no', 'sí'] },
+    { k: 'estado', label: 'Estado', type: 'select', options: ['creciendo', 'estable', 'observación', 'anclando', 'en decadencia'] },
+    { k: 'notas', label: 'Notas', type: 'textarea' }
+  ], null, d => { S.plants.push({ id: uid('pl'), ecoId, ingreso: todayISO(), ...d }); audit('Planta añadida', d.nombre); save(); render(); toast('Planta añadida'); });
+}
+
+function tabEquipo(e) {
+  const l = S.equipment.filter(q => q.ecoId === e.id);
+  return `<div class="between" style="margin-bottom:12px"><div class="dim">${l.length} equipos</div>
+    ${isOwner() ? `<button class="btn primary" onclick="equipForm('${e.id}')">+ Añadir equipo</button>` : ''}</div>
+  <div class="card pad0"><div class="list">${l.map(q => {
+    const venc = q.ultimoMant ? days(q.ultimoMant) - q.freqDias : null;
+    return `<div class="item">
+      <div class="grow"><div class="t">${esc(q.nombre)} <span class="faint">${esc(q.marca)} ${esc(q.modelo)}</span></div>
+      <div class="s">${q.caudal ? q.caudal + ' · ' : ''}${q.potencia ? q.potencia + ' · ' : ''}${q.instalado ? 'instalado ' + fmtFull(q.instalado) : 'sin instalar'} · mantenimiento cada ${q.freqDias} d</div>
+      ${q.notas ? `<div class="s" style="color:var(--faint)">${esc(q.notas)}</div>` : ''}</div>
+      ${venc !== null && venc > 0 ? `<span class="pill warn">${venc} d de retraso</span>` : q.ultimoMant ? `<span class="pill ok">al día</span>` : `<span class="pill">sin registro</span>`}
+      <button class="btn sm" onclick="equipMant('${q.id}')">Mantenimiento hecho</button>
+    </div>`;
+  }).join('') || '<div class="item dim">Sin equipamiento registrado.</div>'}</div></div>`;
+}
+function equipMant(id) {
+  const q = S.equipment.find(x => x.id === id);
+  q.ultimoMant = todayISO(); audit('Mantenimiento de equipo', q.nombre);
+  addTimeline(q.ecoId, 'mantenimiento', `Mantenimiento de ${q.nombre} realizado por ${me().nombre}.`, false);
+  save(); render(); toast('Anotado');
+}
+function equipForm(ecoId) {
+  openForm('Añadir equipo', [
+    { k: 'nombre', label: 'Equipo', req: 1 }, { k: 'marca', label: 'Marca' }, { k: 'modelo', label: 'Modelo' },
+    { k: 'tipo', label: 'Tipo', type: 'select', options: ['filtración', 'iluminación', 'climatización', 'aireación', 'CO2', 'control', 'seguridad', 'otro'] },
+    { k: 'caudal', label: 'Caudal' }, { k: 'potencia', label: 'Potencia' },
+    { k: 'instalado', label: 'Fecha de instalación', type: 'date', def: todayISO() },
+    { k: 'freqDias', label: 'Mantenimiento cada (días)', type: 'number', def: 30 },
+    { k: 'consumibles', label: 'Consumibles' }, { k: 'notas', label: 'Notas', type: 'textarea' }
+  ], null, d => { S.equipment.push({ id: uid('eq'), ecoId, ultimoMant: null, ...d }); audit('Equipo añadido', d.nombre); save(); render(); toast('Equipo añadido'); });
+}
+
+function tabParametros(e) {
+  const keys = e.type === 'terrario' ? ['tcaliente', 'tfria', 'hum', 'uvi'] : ['temp', 'ph', 'tds', 'gh', 'kh', 'nh3', 'no2', 'no3'];
+  const hist = S.params.filter(p => p.ecoId === e.id).sort((a, b) => a.fecha < b.fecha ? 1 : -1).slice(0, 40);
+  return `<div class="between" style="margin-bottom:14px"><div class="dim">${S.params.filter(p => p.ecoId === e.id).length} lecturas registradas</div>
+    <button class="btn primary" onclick="paramForm('${e.id}')">+ Registrar medición</button></div>
+  <div class="grid g2">${keys.map(k => {
+    const s = series(e.id, k);
+    return `<div class="card"><div class="between"><h3>${PARAMS[k].label}</h3>
+      <span class="num dim">${s.length ? s[s.length - 1].val + ' ' + PARAMS[k].unit : '—'}</span></div>
+      <div style="margin-top:8px">${chart(s, { id: k, dec: PARAMS[k].dec })}</div></div>`;
+  }).join('')}</div>
+  <h3 style="margin:22px 0 10px">Histórico</h3>
+  <div class="card pad0"><div class="list">${hist.map(p => `<div class="item">
+    <div class="grow"><div class="t">${PARAMS[p.key].label} <span class="num">${p.val}</span> <span class="faint">${PARAMS[p.key].unit}</span></div>
+    <div class="s">${fmtFull(p.fecha)} · ${esc(p.user)}${p.metodo ? ' · ' + esc(p.metodo) : ''}${p.nota ? ' · ' + esc(p.nota) : ''}</div></div>
+  </div>`).join('') || '<div class="item dim">Todavía no hay lecturas.</div>'}</div></div>`;
+}
+function paramForm(ecoId) {
+  const e = eco(ecoId);
+  const keys = e.type === 'terrario' ? ['tcaliente', 'tfria', 'hum', 'uvi', 'peso'] : ['temp', 'ph', 'tds', 'gh', 'kh', 'nh3', 'no2', 'no3', 'cl2', 'o2'];
+  openForm('Registrar medición · ' + e.name, [
+    { k: 'key', label: 'Parámetro', type: 'select', options: keys.map(k => ({ v: k, l: PARAMS[k].label + (PARAMS[k].unit ? ' (' + PARAMS[k].unit + ')' : '') })), req: 1 },
+    { k: 'val', label: 'Valor', type: 'number', req: 1 },
+    { k: 'fecha', label: 'Fecha', type: 'date', def: todayISO(), req: 1 },
+    { k: 'metodo', label: 'Método o test usado', ph: 'test de gotas, tira, medidor digital…' },
+    { k: 'nota', label: 'Observaciones', type: 'textarea' }
+  ], null, d => {
+    S.params.push({ id: uid('p'), ecoId, user: me().nombre, ...d });
+    audit('Parámetro registrado', `${PARAMS[d.key].label} = ${d.val}`);
+    addTimeline(ecoId, 'parametro', `${PARAMS[d.key].label}: ${d.val} ${PARAMS[d.key].unit}.`, d.key === 'nh3' || d.key === 'no2' ? d.val > 0 : false);
+    save(); render(); toast('Medición registrada');
+  }, 'Registrar');
+}
+
+function tabAlimentacion(e) {
+  const list = animalsOf(e.id).filter(a => a.dieta);
+  const feeds = S.tasks.filter(t => t.ecoId === e.id && t.tipo === 'alimentacion');
+  const logs = S.feedLogs.filter(f => f.ecoId === e.id).sort((a, b) => a.ts < b.ts ? 1 : -1).slice(0, 12);
+  const yaHoy = S.feedLogs.filter(f => f.ecoId === e.id && f.ts.slice(0, 10) === todayISO());
+  return `
+  ${yaHoy.length ? `<div class="alert info" style="margin-bottom:14px"><div class="bar"></div><div>
+    <div>Este ecosistema ya se ha alimentado hoy</div>
+    <div class="why">${yaHoy.map(f => `${esc(f.user)} a las ${fmtHora(f.ts)} — ${esc(f.detalle)}`).join('<br>')}</div></div></div>` : ''}
+  <div class="between" style="margin-bottom:10px"><div class="eyebrow">Pauta de hoy</div>
+    <button class="btn sm" onclick="taskForm('${e.id}')">+ Pauta</button></div>
+  <div class="card pad0" style="margin-bottom:20px"><div class="list">
+    ${feeds.map(t => taskRow({ ...t, ...taskDue(t) }, false)).join('') || '<div class="item dim">Sin pautas de alimentación configuradas.</div>'}
+  </div></div>
+  <div class="eyebrow" style="margin-bottom:10px">Qué come cada uno</div>
+  <div class="grid g2" style="margin-bottom:20px">${list.map(a => `<div class="card">
+    <div class="between"><h3>${esc(a.nombre)}</h3>${a.nocturno ? '<span class="pill led">nocturno</span>' : ''}</div>
+    <div class="dim" style="font-size:13.5px;margin-top:7px">${esc(a.dieta)}</div>
+  </div>`).join('')}</div>
+  <div class="eyebrow" style="margin-bottom:10px">Últimas alimentaciones</div>
+  <div class="card pad0"><div class="list">${logs.map(f => `<div class="item">
+    <div class="grow"><div class="t">${esc(f.detalle)}</div><div class="s">${fmtFull(f.ts)} ${fmtHora(f.ts)} · ${esc(f.user)}</div></div></div>`).join('') || '<div class="item dim">Sin registros todavía.</div>'}</div></div>`;
+}
+
+function tabMantenimiento(e) {
+  const l = S.tasks.filter(t => t.ecoId === e.id).map(t => ({ ...t, ...taskDue(t) }));
+  const logs = S.taskLogs.filter(x => x.ecoId === e.id).sort((a, b) => a.ts < b.ts ? 1 : -1).slice(0, 20);
+  return `<div class="between" style="margin-bottom:12px"><div class="dim">${l.length} rutinas configuradas</div>
+    <button class="btn primary" onclick="taskForm('${e.id}')">+ Nueva rutina</button></div>
+  <div class="card pad0" style="margin-bottom:20px"><div class="list">${l.map(t => `<div class="item">
+    <div class="grow"><div class="t">${esc(t.titulo)}</div>
+      <div class="s">${esc(t.tipo)} · cada ${t.freqDias} d · última vez ${ago(t.ultimo)} · próxima ${fmtFull(t.due)}</div></div>
+    ${t.overdue > 0 ? `<span class="pill warn">${t.overdue} d</span>` : '<span class="pill ok">al día</span>'}
+    <button class="btn sm" onclick="taskOptions('${t.id}')">···</button>
+  </div>`).join('')}</div></div>
+  <div class="eyebrow" style="margin-bottom:10px">Quién hizo qué</div>
+  <div class="card pad0"><div class="list">${logs.map(x => {
+    const t = S.tasks.find(z => z.id === x.taskId);
+    return `<div class="item"><div class="grow"><div class="t">${esc(t ? t.titulo : 'Tarea eliminada')}</div>
+      <div class="s">${fmtFull(x.ts)} ${fmtHora(x.ts)} · ${esc(x.user)} · ${esc(x.estado)}</div></div></div>`;
+  }).join('') || '<div class="item dim">Sin actividad registrada.</div>'}</div></div>`;
+}
+
+function tabLuz(e) {
+  const l = S.lighting.find(x => x.ecoId === e.id);
+  const edad = e.montaje ? days(e.montaje) : null;
+  return `<div class="grid g2" style="align-items:start">
+    <div class="card">
+      <div class="between"><h3>Ciclo configurado</h3><button class="btn sm" onclick="luzForm('${e.id}')">Editar</button></div>
+      ${l ? `<div class="grid g3" style="margin-top:12px">
+        <div class="metric"><div class="k">Encendido</div><div class="v">${esc(l.on)}</div></div>
+        <div class="metric"><div class="k">Apagado</div><div class="v">${esc(l.off)}</div></div>
+        <div class="metric"><div class="k">Duración</div><div class="v">${l.horas}<small> h</small></div></div>
+        <div class="metric"><div class="k">Intensidad</div><div class="v" style="font-size:16px">${esc(l.intensidad)}</div></div>
+      </div>${l.nota ? `<div class="dim" style="font-size:13px;margin-top:12px">${esc(l.nota)}</div>` : ''}`
+      : `<div class="empty" style="margin-top:12px"><b>Sin ciclo configurado</b>Define horas de encendido y apagado.</div>`}
+    </div>
+    <div class="card">
+      <div class="eyebrow">Recomendación</div>
+      <div style="font-size:14px;margin-top:8px">
+      ${e.type === 'terrario'
+        ? 'El fotoperiodo del terrario debe seguir el ciclo natural: 12 h en verano, 10 h en invierno, con el UVB encendido solo dentro de ese tramo y apagado por completo de noche. La caída térmica nocturna forma parte del ciclo, no es un fallo.'
+        : edad !== null && edad < 60
+          ? `Con ${edad} días de montaje, mantener ${l ? l.horas : 6} h/día. Un acuario joven con soil activo y poca planta establecida tiene más nutrientes que capacidad de consumo: subir la luz ahora es alimentar algas. Cuando veas hoja nueva clara y ningún filamento, sube a 7 h.`
+          : 'El acuario ya tiene recorrido: puedes trabajar en 7–8 h, preferiblemente con una pausa de siesta si aparecen algas.'}
+      </div>
+      <div class="sep"></div>
+      <div class="dim" style="font-size:13px">Los depredadores de este montaje son crepusculares. Alimentarlos justo al apagar la luz aprovecha su ventana natural de actividad.</div>
+    </div>
+  </div>`;
+}
+function luzForm(ecoId) {
+  const l = S.lighting.find(x => x.ecoId === ecoId);
+  openForm('Iluminación', [
+    { k: 'on', label: 'Encendido', type: 'time', def: '14:00' }, { k: 'off', label: 'Apagado', type: 'time', def: '20:00' },
+    { k: 'horas', label: 'Horas totales', type: 'number', def: 6 }, { k: 'intensidad', label: 'Intensidad', def: '60 %' },
+    { k: 'nota', label: 'Notas', type: 'textarea' }
+  ], l, d => {
+    if (l) Object.assign(l, d); else S.lighting.push({ ecoId, ...d });
+    audit('Iluminación configurada', ecoId); save(); render(); toast('Guardado');
+  });
+}
+
+function tabSalud(e) {
+  const l = S.health.filter(h => h.ecoId === e.id || (e.id === 'eco_600' && h.ecoId === 'eco_105'));
+  return `<div class="between" style="margin-bottom:12px"><div class="dim">${l.length} incidencias registradas</div>
+    <button class="btn primary" onclick="healthForm('${e.id}')">+ Registrar incidencia</button></div>
+  <div class="stack">${l.map(h => `<div class="card">
+    <div class="between"><h3>${esc(h.animalRef)}</h3><span class="pill ${h.estado === 'cerrado' ? '' : 'warn'}">${esc(h.estado)}</span></div>
+    <div class="sep"></div>
+    <div style="font-size:13.5px" class="dim">
+      <b style="color:var(--txt)">Síntomas:</b> ${esc(h.sintomas)}<br>
+      <b style="color:var(--txt)">Diagnóstico:</b> ${esc(h.diagnostico)}<br>
+      <b style="color:var(--txt)">Tratamiento:</b> ${esc(h.tratamiento)}${h.dosis ? ' · ' + esc(h.dosis) : ''}<br>
+      <b style="color:var(--txt)">Fechas:</b> ${fmtFull(h.inicio)} → ${h.fin ? fmtFull(h.fin) : 'en curso'}<br>
+      <b style="color:var(--txt)">Resultado:</b> ${esc(h.resultado)}
+    </div></div>`).join('') || `<div class="empty"><b>Sin incidencias</b>Es la mejor casilla vacía de la app.</div>`}</div>`;
+}
+function healthForm(ecoId) {
+  openForm('Registrar incidencia', [
+    { k: 'animalRef', label: 'Animal afectado', req: 1 }, { k: 'sintomas', label: 'Síntomas', type: 'textarea', req: 1 },
+    { k: 'diagnostico', label: 'Diagnóstico o sospecha' }, { k: 'tratamiento', label: 'Tratamiento' },
+    { k: 'dosis', label: 'Dosis' }, { k: 'inicio', label: 'Inicio', type: 'date', def: todayISO() },
+    { k: 'fin', label: 'Fin', type: 'date' }, { k: 'resultado', label: 'Resultado' },
+    { k: 'estado', label: 'Estado', type: 'select', options: ['abierto', 'en tratamiento', 'cerrado'] }
+  ], null, d => {
+    S.health.unshift({ id: uid('h'), ecoId, ...d });
+    audit('Incidencia de salud', d.animalRef);
+    addTimeline(ecoId, 'salud', `${d.animalRef}: ${d.sintomas}.`, true);
+    save(); render(); toast('Incidencia registrada');
+  });
+}
+
+function tabDiario(e) {
+  const l = S.timeline.filter(t => t.ecoId === e.id).sort((a, b) => a.fecha < b.fecha ? 1 : -1);
+  return `<div class="between" style="margin-bottom:14px"><div class="dim">${l.length} eventos</div>
+    <button class="btn" onclick="noteForm('${e.id}')">+ Anotar algo</button></div>
+  <div class="tl">${l.map(ev => `<div class="ev ${ev.hi ? 'hi' : ''}">
+    <div class="eyebrow">${fmtFull(ev.fecha)} · ${esc(ev.tipo)}</div>
+    <div style="font-size:14px;margin-top:2px">${esc(ev.texto)}</div></div>`).join('') || '<div class="dim">Sin eventos.</div>'}</div>`;
+}
+function noteForm(ecoId) {
+  openForm('Anotar en el diario', [
+    { k: 'texto', label: 'Qué ha pasado', type: 'textarea', req: 1 },
+    { k: 'tipo', label: 'Tipo', type: 'select', options: ['nota', 'observacion', 'hardscape', 'habitante', 'mantenimiento', 'salud'] }
+  ], null, d => { S.timeline.unshift({ id: uid('tl'), ecoId, fecha: todayISO(), hi: false, ...d }); audit('Nota en diario', d.texto.slice(0, 50)); save(); render(); toast('Anotado'); });
+}
+
+function tabDocs(e) {
+  const l = S.docs.filter(d => d.ecoId === e.id);
+  return `<div class="between" style="margin-bottom:12px"><div class="dim">${l.length} documentos</div>
+    <div class="row"><button class="btn" onclick="exportEco('${e.id}')">Exportar ficha</button>
+    <button class="btn primary" onclick="docForm('${e.id}')">+ Documento</button></div></div>
+  <div class="stack">${l.map(d => `<div class="card">
+    <div class="between"><h3>${esc(d.titulo)}</h3><span class="tag">${esc(d.tipo)}</span></div>
+    <div style="font-size:13.5px;margin-top:9px;white-space:pre-wrap" class="dim">${esc(d.cuerpo)}</div></div>`).join('')
+    || `<div class="empty"><b>Sin documentación</b>Los protocolos ("qué hago si…") son lo que salva el acuario cuando no estás tú.</div>`}</div>`;
+}
+function docForm(ecoId) {
+  openForm('Nuevo documento', [
+    { k: 'titulo', label: 'Título', req: 1 },
+    { k: 'tipo', label: 'Tipo', type: 'select', options: ['protocolo', 'ficha', 'manual', 'nota'] },
+    { k: 'cuerpo', label: 'Contenido', type: 'textarea', req: 1 }
+  ], null, d => { S.docs.push({ id: uid('doc'), ecoId, ...d }); audit('Documento creado', d.titulo); save(); render(); toast('Documento guardado'); });
+}
+
+/* ---------- crecimiento global ---------- */
+function viewCrecimiento() {
+  const tracked = S.animals.filter(a => a.adultCm && a.estado === 'activo');
+  return `<div class="pagehead"><div><div class="eyebrow">Tallas y proyecciones</div><h1>Crecimiento</h1>
+    <div class="dim" style="margin-top:4px">La compatibilidad de hoy no es la compatibilidad de dentro de un año.</div></div></div>
+  <div class="card pad0"><div class="list">${tracked.map(a => {
+    const cur = currentSize(a), r = growthRate(a.id);
+    const pct = cur && a.adultCm ? Math.min(100, (cur / a.adultCm) * 100) : 0;
+    return `<div class="item tap" onclick="go('#/animal/${a.id}')">
+      <div class="grow">
+        <div class="t">${esc(a.nombre)} <span class="faint">${esc(eco(a.ecoId).name)}</span></div>
+        <div class="bar-track" style="margin:6px 0 4px"><div class="bar-fill" style="width:${pct}%"></div></div>
+        <div class="s num">${cur ?? '—'} cm de ${a.adultCm} cm ${r ? '· ' + r.toFixed(1) + ' cm/mes' : '· ritmo no calculable'}</div>
+      </div>
+      <button class="btn sm" onclick="event.stopPropagation();measureForm('${a.id}')">+ Medida</button>
+    </div>`;
+  }).join('')}</div></div>`;
+}
+
+/* ---------- modo cuidador ---------- */
+function viewViaje() {
+  const c = S.caretaker;
+  const plan = S.ecosystems.filter(e => e.status === 'activo' || e.status === 'ciclando').map(e => ({
+    e, t: S.tasks.filter(t => t.ecoId === e.id && t.activa && t.freqDias <= 3)
+  }));
+  return `<div class="pagehead"><div><div class="eyebrow">Cuando no estás tú</div><h1>Modo cuidador</h1>
+    <div class="dim" style="margin-top:4px">Genera una lista que pueda seguir alguien sin conocimientos de acuariofilia.</div></div>
+    <button class="btn ${c.activo ? '' : 'primary'}" onclick="${c.activo ? 'stopCare()' : 'careForm()'}">${c.activo ? 'Desactivar' : 'Activar modo cuidador'}</button></div>
+  ${c.activo ? `<div class="alert info" style="margin-bottom:18px"><div class="bar"></div><div>
+    <div>Activo para ${esc(c.persona)}</div><div class="why">Del ${fmtFull(c.desde)} al ${fmtFull(c.hasta)} · ${Math.max(0, days(todayISO(), c.hasta))} días restantes</div></div></div>` : ''}
+  <div class="grid g2" style="align-items:start">
+    <div class="stack">
+      <div class="eyebrow">Cada día hay que hacer esto</div>
+      ${plan.map(p => `<div class="card pad0">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--line)"><h3>${esc(p.e.name)}</h3></div>
+        <div class="list">${p.t.map(t => `<div class="item">
+          <div class="grow"><div class="t">${t.hora ? t.hora + ' · ' : ''}${esc(t.titulo)}</div>
+          <div class="s">${esc(t.nota || 'Sin instrucciones adicionales.')}</div></div></div>`).join('')}</div>
+      </div>`).join('')}
+    </div>
+    <div class="stack">
+      <div class="card" style="border-color:#4E2620">
+        <div class="eyebrow" style="color:var(--alert)">Importante · no hacer</div>
+        <ul style="margin:10px 0 0 18px;font-size:14px;line-height:1.8">${c.noHacer.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+      </div>
+      <div class="card">
+        <div class="eyebrow">Si algo va mal</div>
+        <div style="font-size:14px;margin-top:8px">
+          Pez muerto o agua turbia de golpe: no cambies nada, hazme una foto y avísame.<br><br>
+          Filtro parado: comprueba el enchufe. Si no arranca, déjalo y avísame.<br><br>
+          Un animal fuera del agua: devuélvelo con las manos mojadas y cierra bien la tapa.
+        </div>
+      </div>
+      <div class="card">
+        <div class="eyebrow">Contacto y material</div>
+        <div class="dim" style="font-size:13.5px;margin-top:8px">Añade aquí tu teléfono, el del veterinario de exóticos y dónde están la comida y los tests. Se incluye en la exportación para el cuidador.</div>
+        <button class="btn sm" style="margin-top:10px" onclick="exportCare()">Exportar instrucciones</button>
+      </div>
+    </div>
+  </div>`;
+}
+function careForm() {
+  openForm('Activar modo cuidador', [
+    { k: 'persona', label: 'Quién se queda al cargo', req: 1 },
+    { k: 'desde', label: 'Desde', type: 'date', def: todayISO(), req: 1 },
+    { k: 'hasta', label: 'Hasta', type: 'date', req: 1 }
+  ], null, d => {
+    Object.assign(S.caretaker, d, { activo: true });
+    audit('Modo cuidador activado', d.persona); save(); render(); toast('Modo cuidador activo');
+  }, 'Activar');
+}
+function stopCare() { S.caretaker.activo = false; audit('Modo cuidador desactivado', ''); save(); render(); }
+
+/* ---------- ajustes ---------- */
+function viewAjustes() {
+  return `<div class="pagehead"><div><div class="eyebrow">Cuenta y datos</div><h1>Ajustes</h1></div></div>
+  <div class="grid g2" style="align-items:start">
+    <div class="stack">
+      <div class="card">
+        <div class="eyebrow">Personas con acceso</div>
+        <div class="list" style="margin-top:6px">${S.users.map(u => `<div class="item" style="padding:9px 0">
+          <div class="grow"><div class="t">${esc(u.nombre)}${u.id === S.currentUser ? ' <span class="faint">(sesión actual)</span>' : ''}</div>
+          <div class="s">${u.rol === 'owner' ? 'Control total' : u.rol === 'cuidador' ? 'Puede alimentar, medir, completar tareas y anotar. No borra nada.' : 'Solo lectura'}</div></div>
+          <span class="pill">${esc(u.rol)}</span></div>`).join('')}</div>
+        <button class="btn sm" style="margin-top:10px" onclick="userForm()">+ Invitar persona</button>
+        <div class="hint">En esta versión los perfiles se cambian desde el propio dispositivo. El paquete de despliegue incluye autenticación real con Supabase y políticas por fila.</div>
+      </div>
+      <div class="card">
+        <div class="eyebrow">Datos</div>
+        <div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap">
+          <button class="btn" onclick="exportAll()">Exportar copia (JSON)</button>
+          <button class="btn" onclick="importAll()">Importar copia</button>
+          <button class="btn" onclick="resetAll()">Restablecer datos de ejemplo</button>
+        </div>
+        <div class="hint">La copia incluye todo el histórico. Nada se sobrescribe: cada medición y cada tarea completada queda registrada con fecha, hora y autor.</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Registro de auditoría</div>
+      <div class="list" style="margin-top:6px;max-height:420px;overflow:auto">${S.audit.slice(0, 60).map(a => `<div class="item" style="padding:8px 0">
+        <div class="grow"><div class="t" style="font-size:13.5px">${esc(a.accion)}</div>
+        <div class="s">${esc(a.detalle)} · ${esc(a.user)} · ${fmtFull(a.ts)} ${fmtHora(a.ts)}</div></div></div>`).join('') || '<div class="dim">Sin movimientos todavía.</div>'}</div>
+    </div>
+  </div>`;
+}
+function userForm() {
+  openForm('Invitar persona', [
+    { k: 'nombre', label: 'Nombre', req: 1 },
+    { k: 'rol', label: 'Rol', type: 'select', options: ['cuidador', 'viewer', 'owner'] }
+  ], null, d => { S.users.push({ id: uid('u'), ...d }); audit('Persona invitada', d.nombre); save(); render(); toast('Añadida'); });
+}
+function download(name, text, type) {
+  const b = new Blob([text], { type: type || 'text/plain' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name; a.click();
+}
+function exportAll() { download('bioma-backup-' + todayISO() + '.json', JSON.stringify(S, null, 2), 'application/json'); toast('Copia descargada'); }
+function importAll() {
+  const i = document.createElement('input'); i.type = 'file'; i.accept = '.json';
+  i.onchange = () => { const f = i.files[0]; const r = new FileReader(); r.onload = () => { try { S = JSON.parse(r.result); save(); render(); toast('Copia restaurada'); } catch (e) { toast('El archivo no es una copia válida'); } }; r.readAsText(f); };
+  i.click();
+}
+function resetAll() { if (confirm('Se sustituyen todos los datos por la semilla del Documento Maestro. ¿Continuar?')) { S = seed(); save(); render(); toast('Datos restablecidos'); } }
+function exportEco(id) {
+  const e = eco(id);
+  let md = `# ${e.name}\n\n${e.dims}${e.liters ? ' · ' + e.liters + ' L' : ''} · ${e.status}\n\n${e.concepto}\n\n## Habitantes\n`;
+  allAnimalsOf(id).forEach(a => md += `- ${a.nombre} (${a.sci}) ×${a.qty} · ${a.zona} · ${a.estado} · identificación ${a.ident}${a.adultCm ? ' · adulto ~' + a.adultCm + ' cm' : ''}\n`);
+  md += `\n## Plantas\n`; S.plants.filter(p => p.ecoId === id).forEach(p => md += `- ${p.nombre} (${p.sci}) · ${p.estado}\n`);
+  md += `\n## Equipamiento\n`; S.equipment.filter(q => q.ecoId === id).forEach(q => md += `- ${q.nombre} ${q.marca} ${q.modelo}\n`);
+  md += `\n## Últimos parámetros\n`; Object.keys(PARAMS).forEach(k => { const p = lastParam(id, k); if (p) md += `- ${PARAMS[k].label}: ${p.val} ${PARAMS[k].unit} (${p.fecha})\n`; });
+  md += `\n## Avisos abiertos\n`; alertsFor(id).forEach(a => md += `- [${a.nivel}] ${a.txt} — ${a.why}\n`);
+  download(e.name.replace(/\s+/g, '_') + '.md', md, 'text/markdown'); toast('Ficha exportada');
+}
+function exportCare() {
+  const c = S.caretaker;
+  let md = `# Instrucciones para ${c.persona || 'quien cuide los ecosistemas'}\n\n${c.desde ? 'Del ' + fmtFull(c.desde) + ' al ' + fmtFull(c.hasta) : ''}\n`;
+  S.ecosystems.filter(e => e.status === 'activo' || e.status === 'ciclando').forEach(e => {
+    md += `\n## ${e.name}\n`;
+    S.tasks.filter(t => t.ecoId === e.id && t.activa && t.freqDias <= 3).forEach(t => md += `- [ ] ${t.hora ? t.hora + ' · ' : ''}${t.titulo}${t.nota ? ' — ' + t.nota : ''}\n`);
+  });
+  md += `\n## No hacer\n` + c.noHacer.map(x => `- ${x}\n`).join('');
+  download('instrucciones-cuidador.md', md, 'text/markdown'); toast('Instrucciones exportadas');
+}
+
+/* ---------- alta de ecosistema ---------- */
+function ecoWizard() {
+  openForm('Nuevo ecosistema', [
+    { k: 'name', label: 'Nombre', req: 1, ph: 'Terrario camaleón' },
+    { k: 'type', label: 'Tipo', type: 'select', options: ['acuario', 'terrario', 'paludario', 'acuaterrario', 'otro'], req: 1 },
+    { k: 'subtype', label: 'Subtítulo', ph: 'Dulce · selva inundada' },
+    { k: 'liters', label: 'Litros', type: 'number' },
+    { k: 'dims', label: 'Medidas', ph: '120 × 75 × 75 cm' },
+    { k: 'status', label: 'Estado', type: 'select', options: ['idea', 'planificado', 'montaje', 'ciclando', 'activo', 'cuarentena', 'archivado'] },
+    { k: 'montaje', label: 'Fecha de montaje', type: 'date' },
+    { k: 'concepto', label: 'Concepto', type: 'textarea' },
+    { k: 'soil', label: 'Sustrato' }, { k: 'hardscape', label: 'Hardscape' },
+    { k: 'ubicacion', label: 'Ubicación', def: 'Casa, Mallorca' }
+  ], null, d => {
+    const id = uid('eco');
+    S.ecosystems.push({ id, color: '#7FD1A6', ...d });
+    autoPlan(id);
+    audit('Ecosistema creado', d.name);
+    save(); go('#/eco/' + id); toast('Ecosistema creado con su plan de mantenimiento');
+  }, 'Crear');
+}
+function ecoEdit(id) {
+  const e = eco(id);
+  openForm('Editar ficha', [
+    { k: 'name', label: 'Nombre', req: 1 }, { k: 'subtype', label: 'Subtítulo' },
+    { k: 'liters', label: 'Litros', type: 'number' }, { k: 'dims', label: 'Medidas' },
+    { k: 'status', label: 'Estado', type: 'select', options: ['idea', 'planificado', 'montaje', 'ciclando', 'activo', 'cuarentena', 'archivado'] },
+    { k: 'montaje', label: 'Fecha de montaje', type: 'date' },
+    { k: 'concepto', label: 'Concepto', type: 'textarea' }, { k: 'soil', label: 'Sustrato' }, { k: 'hardscape', label: 'Hardscape' }
+  ], e, d => { Object.assign(e, d); audit('Ficha editada', e.name); save(); render(); toast('Ficha actualizada'); });
+}
+// Plan de mantenimiento generado al crear el ecosistema
+function autoPlan(id) {
+  const e = eco(id);
+  const base = e.type === 'terrario'
+    ? [
+      { titulo: 'Nebulización de la mañana', tipo: 'mantenimiento', freqDias: 1, hora: '08:00', nota: 'Ciclo largo; el terrario debe secarse después.' },
+      { titulo: 'Comprobar gradiente térmico y punto de calor', tipo: 'observacion', freqDias: 1, hora: '12:00', nota: 'Medir en la rama de asoleo, no en el aire.' },
+      { titulo: 'Alimentar insectos vivos cargados', tipo: 'alimentacion', freqDias: 1, hora: '11:00', nota: 'Espolvorear calcio según pauta.' },
+      { titulo: 'Registrar humedad y caída nocturna', tipo: 'parametros', freqDias: 3, hora: '', nota: '' },
+      { titulo: 'Retirar restos e insectos no comidos', tipo: 'mantenimiento', freqDias: 2, hora: '', nota: 'Un grillo suelto de noche puede morder al animal dormido.' },
+      { titulo: 'Sustituir tubo UVB', tipo: 'mantenimiento', freqDias: 300, hora: '', nota: 'Aunque siga encendiendo, deja de emitir UVB útil.' }
+    ]
+    : [
+      { titulo: 'Alimentar', tipo: 'alimentacion', freqDias: 1, hora: '09:00', nota: 'Ración que se consuma en 2 minutos.' },
+      { titulo: 'Revisar animales y equipos', tipo: 'observacion', freqDias: 1, hora: '', nota: '' },
+      { titulo: 'Medir parámetros', tipo: 'parametros', freqDias: 7, hora: '', nota: '' },
+      { titulo: 'Cambio de agua 25 %', tipo: 'mantenimiento', freqDias: 14, hora: '', nota: 'Agua atemperada y tratada.' },
+      { titulo: 'Mantenimiento de filtro', tipo: 'mantenimiento', freqDias: 30, hora: '', nota: 'Enjuagar en agua del propio acuario.' }
+    ];
+  base.forEach(b => S.tasks.push({ id: uid('t'), ecoId: id, activa: true, ultimo: null, ...b }));
+  addTimeline(id, 'montaje', 'Ecosistema creado. Plan de mantenimiento generado automáticamente.', true);
+}
+
+/* ============================================================
+   ASISTENTE
+   ============================================================ */
+let chatOpen = false;
+function contextPack() {
+  const r = parseHash();
+  const id = r.view === 'eco' ? r.id : (r.view === 'animal' ? (S.animals.find(a => a.id === r.id) || {}).ecoId : null);
+  return {
+    fecha: todayISO(), usuario: me().nombre + ' (' + me().rol + ')',
+    ecosistemaAbierto: id ? eco(id) : null,
+    ecosistemas: S.ecosystems.map(e => ({
+      nombre: e.name, tipo: e.type, litros: e.liters, medidas: e.dims, estado: e.status,
+      diasDesdeMontaje: e.montaje ? days(e.montaje) : null,
+      habitantes: animalsOf(e.id).map(a => ({ nombre: a.nombre, sci: a.sci, n: a.qty, tallaActual: currentSize(a), tallaAdulta: a.adultCm, zona: a.zona, ident: a.ident, dieta: a.dieta })),
+      ultimosParametros: Object.keys(PARAMS).map(k => { const p = lastParam(e.id, k); return p ? `${PARAMS[k].label}=${p.val}${PARAMS[k].unit} (${p.fecha})` : null; }).filter(Boolean),
+      tareasHoy: tasksToday(e.id).map(t => t.titulo + (doneToday(t.id) ? ' [hecha]' : ' [pendiente]')),
+      avisos: alertsFor(e.id).map(a => a.nivel + ': ' + a.txt)
+    })),
+    riesgoDepredacion: S.ecosystems.flatMap(e => predationScan(e.id).slice(0, 4).map(r2 => `${r2.pred.nombre} → ${r2.prey.nombre}: ${r2.yaEs ? 'ya en rango' : r2.meses !== null ? '~' + Math.round(r2.meses) + ' meses' : 'sin ritmo medido'}`)),
+    ultimasAlimentaciones: S.feedLogs.slice(-6).map(f => `${f.detalle} · ${f.user} · ${fmtFull(f.ts)} ${fmtHora(f.ts)}`),
+    documentos: S.docs.map(d => d.titulo)
+  };
+}
+/* motor local determinista: responde solo con datos existentes */
+function localAnswer(q) {
+  const t = q.toLowerCase();
+  const r = parseHash();
+  const id = r.view === 'eco' ? r.id : 'eco_600';
+  const e = eco(id);
+
+  if (/hoy|qué tengo que hacer|que tengo que hacer|pendiente/.test(t)) {
+    const l = S.ecosystems.map(x => ({ x, t: tasksToday(x.id).filter(z => !doneToday(z.id)) })).filter(z => z.t.length);
+    if (!l.length) return { txt: 'No queda nada pendiente hoy en ninguno de tus ecosistemas.', src: 'tareas' };
+    return { txt: l.map(z => `${z.x.name}:\n` + z.t.map(y => `· ${y.hora ? y.hora + ' — ' : ''}${y.titulo}`).join('\n')).join('\n\n'), src: 'tareas' };
+  }
+  if (/cambio de agua|último cambio|ultimo cambio/.test(t)) {
+    const task = S.tasks.find(x => /cambio de agua/i.test(x.titulo) && x.ecoId === id);
+    if (!task || !task.ultimo) return { txt: 'No hay ningún cambio de agua registrado todavía en ' + e.name + '.', src: 'mantenimiento' };
+    return { txt: `El último cambio de agua de ${e.name} fue el ${fmtFull(task.ultimo)} (${ago(task.ultimo)}). La pauta configurada es cada ${task.freqDias} días.`, src: 'mantenimiento' };
+  }
+  if (/cuánto.*com|cuanto.*com|de comer|alimenta/.test(t)) {
+    const a = animalsOf(id).find(x => t.includes(x.nombre.toLowerCase().split(' ')[0]));
+    if (a) return { txt: `${a.nombre}: ${a.dieta || 'sin dieta registrada'}\n\nRegla práctica: ración que se consuma en unos 2 minutos, y en los depredadores mejor al bajar la luz.`, src: 'ficha del habitante' };
+    return { txt: 'Dime de qué habitante quieres la pauta y te doy exactamente lo que hay registrado en su ficha.', src: null };
+  }
+  if (/ha crecido|crecimiento|cuánto mide|cuanto mide/.test(t)) {
+    const a = S.animals.find(x => t.includes(x.nombre.toLowerCase().split(' ')[0])) || S.animals.find(x => x.id === 'an_bichir');
+    const rate = growthRate(a.id), cur = currentSize(a);
+    if (!rate) return { txt: `${a.nombre} mide ${cur ?? '—'} cm según la última medida registrada. Solo hay una medición, así que todavía no puedo calcular el ritmo: registra otra dentro de 2–4 semanas.`, src: 'crecimiento' };
+    return { txt: `${a.nombre}: ${cur} cm, creciendo a ${rate.toFixed(1)} cm/mes. Talla adulta esperada ${a.adultCm} cm.`, src: 'crecimiento' };
+  }
+  if (/puedo meter|puedo añadir|puedo anadir|añadir un|congo/.test(t)) {
+    const edad = e.montaje ? days(e.montaje) : null;
+    const risk = predationScan(id).slice(0, 3);
+    return {
+      txt: `Con los datos actuales de ${e.name}: ${edad !== null ? `lleva ${edad} días montado` : 'sin fecha de montaje registrada'} y sostiene ${countAnimals(id)} animales introducidos recientemente.\n\nMi respuesta ahora mismo es no, y no por espacio: la carga biológica acaba de subir y no hay serie de NH3/NO2 que demuestre que el filtro la absorbe.\n\nAdemás, para cualquier especie candidata la pregunta no es si cabe hoy, sino si sigue siendo compatible con un bichir de 30 cm y un Ctenopoma de 17 cm. ${risk.length ? 'Hoy ya tengo esto en el radar: ' + risk.map(x => x.prey.nombre).join(', ') + '.' : ''}`,
+      src: 'ciclado + motor de compatibilidad'
+    };
+  }
+  if (/tds|por qué sube|porque sube/.test(t)) {
+    const s = series(id, 'tds');
+    if (s.length < 2) return { txt: `Solo tengo ${s.length} lectura de TDS en ${e.name}, así que no puedo hablar de tendencia. Con dos o tres más te digo si sube y por qué.`, src: 'parámetros' };
+    return { txt: `TDS en ${e.name}: ${s.map(x => x.val).join(' → ')} ppm. Sube normalmente por evaporación reponiendo con agua de grifo, por acumulación de sales entre cambios o por abonos. Compáralo con el TDS de tu grifo antes de sacar conclusiones.`, src: 'parámetros' };
+  }
+  if (/viaje|me voy|cuidador/.test(t)) {
+    return { txt: 'Ve a Modo cuidador, activa las fechas y la persona, y la app genera la checklist diaria y la lista de "no hacer". Desde ahí puedes exportarla en Markdown para enviársela.', src: 'modo cuidador' };
+  }
+  if (/nh3|amonio|nitrito|no2|ciclado/.test(t)) {
+    const n = lastParam(id, 'nh3'), n2 = lastParam(id, 'no2'), n3 = lastParam(id, 'no3');
+    return {
+      txt: `${e.name}:\n· NH3/NH4: ${n ? n.val + ' mg/L (' + ago(n.fecha) + ')' : 'sin registrar'}\n· NO2: ${n2 ? n2.val + ' mg/L (' + ago(n2.fecha) + ')' : 'sin registrar'}\n· NO3: ${n3 ? n3.val + ' mg/L (' + ago(n3.fecha) + ')' : 'sin registrar'}\n\nCeros en NH3 y NO2 no demuestran un ciclo maduro por sí solos: lo que lo demuestra es una serie sostenida de ceros con NO3 subiendo, después de una carga biológica real.`, src: 'parámetros'
+    };
+  }
+  if (/camale|terrario|pardalis/.test(t)) {
+    return { txt: 'El terrario de camaleón pantera está como proyecto. Su ficha técnica completa está en Documentación del ecosistema (alojamiento, térmica, UVB, agua, dieta y qué cerrar antes de comprar el animal). Lo importante: malla en vez de cristal, altura mínima 120 cm, UVI 2,5–3 en la rama alta, caída térmica nocturna y ninguna manipulación innecesaria.', src: 'documentación' };
+  }
+  return null;
+}
+async function askClaude(q) {
+  const ctx = contextPack();
+  const sys = `Eres el asistente operativo de "Bioma", una app de gestión de acuarios y terrarios. Respondes en español, breve y concreto, con tono de acuariófilo experto y honesto.
+REGLA CRÍTICA: usa exclusivamente los datos del CONTEXTO. Si un dato no existe, dilo tal cual ("todavía no tenemos registrado el NH3 actual") y nunca lo estimes ni lo inventes. Distingue siempre entre confirmado, probable y pendiente de identificar. No des cifras de parámetros que no aparezcan en el contexto.
+CONTEXTO:
+${JSON.stringify(ctx)}`;
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6', max_tokens: 1000,
+      messages: [{ role: 'user', content: sys + '\n\nPREGUNTA: ' + q }]
+    })
+  });
+  const data = await res.json();
+  return data.content.filter(c => c.type === 'text').map(c => c.text).join('\n').trim();
+}
+function renderChat() {
+  const p = $('#chatpanel'); if (!p) return;
+  const log = p.querySelector('.chatlog');
+  log.innerHTML = S.chat.map(m => `<div class="msg ${m.role}">${esc(m.text)}${m.src ? `<span class="src">fuente · ${esc(m.src)}</span>` : ''}</div>`).join('')
+    || `<div class="msg ai">Pregúntame por tus ecosistemas. Solo respondo con lo que hay registrado: si un dato no existe, te lo digo en vez de inventarlo.</div>`;
+  log.scrollTop = log.scrollHeight;
+}
+function toggleChat() {
+  chatOpen = !chatOpen;
+  if (!chatOpen) { const p = $('#chatpanel'); if (p) p.remove(); return; }
+  const d = document.createElement('div');
+  d.id = 'chatpanel'; d.className = 'chatpanel';
+  d.innerHTML = `
+    <div class="between" style="padding:14px 16px;border-bottom:1px solid var(--line)">
+      <div><h2>Asistente</h2><div class="eyebrow" id="chatctx"></div></div>
+      <button class="btn sm ghost" onclick="toggleChat()">✕</button>
+    </div>
+    <div class="chatlog"></div>
+    <div class="sugg">
+      ${['¿Qué tengo que hacer hoy?', '¿Puedo meter un tetra Congo?', '¿Ha crecido el bichir?', '¿Cuándo fue el último cambio de agua?', '¿Cómo va el ciclado?'].map(s => `<button onclick="sendChat('${s.replace(/'/g, "\\'")}')">${s}</button>`).join('')}
+    </div>
+    <div class="chatin">
+      <input id="chatq" placeholder="Escribe tu pregunta" onkeydown="if(event.key==='Enter')sendChat()">
+      <button class="btn primary" onclick="sendChat()">Enviar</button>
+    </div>`;
+  document.body.appendChild(d);
+  const r = parseHash();
+  $('#chatctx').textContent = r.view === 'eco' ? 'Contexto: ' + eco(r.id).name : 'Contexto: todos los ecosistemas';
+  renderChat();
+  setTimeout(() => { const i = $('#chatq'); if (i) i.focus(); }, 60);
+}
+async function sendChat(preset) {
+  const input = $('#chatq');
+  const q = preset || (input ? input.value.trim() : '');
+  if (!q) return;
+  if (input) input.value = '';
+  S.chat.push({ role: 'me', text: q });
+  const local = localAnswer(q);
+  if (local) { S.chat.push({ role: 'ai', text: local.txt, src: local.src ? 'datos de la app · ' + local.src : null }); save(); renderChat(); return; }
+  S.chat.push({ role: 'ai', text: '…' }); renderChat();
+  try {
+    const a = await askClaude(q);
+    S.chat[S.chat.length - 1] = { role: 'ai', text: a, src: 'modelo + datos de la app' };
+  } catch (e) {
+    S.chat[S.chat.length - 1] = {
+      role: 'ai',
+      text: 'No he podido conectar con el modelo, así que respondo solo con lo que tengo registrado. Prueba a preguntarme por tareas de hoy, parámetros, crecimiento, alimentación o el último cambio de agua.',
+      src: 'modo sin conexión'
+    };
+  }
+  save(); renderChat();
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render() {
+  route = parseHash();
+  renderNav();
+  const v = route.view;
+  let html;
+  if (v === 'eco') html = viewEco(route.id, route.tab);
+  else if (v === 'animal') html = viewAnimal(route.id);
+  else if (v === 'ecosistemas') html = viewEcosistemas();
+  else if (v === 'crecimiento') html = viewCrecimiento();
+  else if (v === 'viaje') html = viewViaje();
+  else if (v === 'ajustes') html = viewAjustes();
+  else html = viewHoy();
+  $('#main').innerHTML = html;
+  window.scrollTo(0, 0);
+  const c = $('#chatctx');
+  if (c) c.textContent = route.view === 'eco' ? 'Contexto: ' + eco(route.id).name : 'Contexto: todos los ecosistemas';
+}
+window.addEventListener('hashchange', render);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); if (chatOpen) toggleChat(); } });
+
+(async function init() {
+  S = await Store.get();
+  if (!S || !S.ecosystems) { S = seed(); await Store.set(S); }
+  $('#fab').onclick = toggleChat;
+  if (!location.hash) location.hash = '#/hoy';
+  render();
+})();
+
+</script>
+</body>
+</html>
