@@ -1164,7 +1164,7 @@ function viewEco(id, tab) {
         ${e.montaje ? `<span class="tag">${days(e.montaje)} días</span>` : ''}
       </div>
     </div>
-    ${isOwner() ? `<div class="row"><button class="btn" onclick="ecoEdit('${id}')">Editar ficha</button></div>` : ''}
+    ${isOwner() ? `<div class="row"><button class="btn" onclick="ecoEdit('${id}')">Editar ficha</button><button class="btn ghost" onclick="ecoDelete('${id}')">Borrar</button></div>` : ''}
   </div>
   <div class="tabs">${TABS.map(t => `<a class="tab ${tab === t[0] ? 'on' : ''}" href="#/eco/${id}/${t[0]}">${t[1]}</a>`).join('')}</div>`;
   const body = ({
@@ -1757,6 +1757,30 @@ function ecoWizard() {
     audit('Ecosistema creado', d.name);
     save(); go('#/eco/' + id); toast('Ecosistema creado con su plan de mantenimiento');
   }, 'Crear');
+}
+function ecoDelete(id) {
+  if (!isOwner()) return toast('Solo el propietario puede borrar un ecosistema');
+  const e = eco(id);
+  if (!e) return;
+  if (!confirm('Se borra «' + e.name + '» y todo lo que cuelga de él (habitantes, tareas, mediciones…). No se puede deshacer.')) return;
+  const animalIds = new Set((S.animals || []).filter(a => a.ecoId === id).map(a => a.id));
+  S.ecosystems = S.ecosystems.filter(x => x.id !== id);
+  S.animals = (S.animals || []).filter(a => a.ecoId !== id);
+  S.plants = (S.plants || []).filter(p => p.ecoId !== id);
+  S.equipment = (S.equipment || []).filter(q => q.ecoId !== id);
+  S.params = (S.params || []).filter(p => p.ecoId !== id);
+  S.tasks = (S.tasks || []).filter(t => t.ecoId !== id);
+  S.taskLogs = (S.taskLogs || []).filter(l => l.ecoId !== id);
+  S.measurements = (S.measurements || []).filter(m => !animalIds.has(m.animalId));
+  S.health = (S.health || []).filter(h => h.ecoId !== id);
+  S.docs = (S.docs || []).filter(d => d.ecoId !== id);
+  S.timeline = (S.timeline || []).filter(t => t.ecoId !== id);
+  S.feedLogs = (S.feedLogs || []).filter(f => f.ecoId !== id);
+  S.lighting = (S.lighting || []).filter(l => l.ecoId !== id);
+  audit('Ecosistema borrado', e.name);
+  save();
+  go('#/ecosistemas');
+  toast('Ecosistema borrado');
 }
 function ecoEdit(id) {
   const e = eco(id);
