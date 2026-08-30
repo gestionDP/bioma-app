@@ -161,13 +161,20 @@ input,select,textarea{
 input:focus,select:focus,textarea:focus{border-color:#33564E;outline:none}
 textarea{min-height:78px;resize:vertical;font-family:inherit}
 .hint{font-size:11.5px;color:var(--faint);margin-top:4px}
+.pass-wrap{position:relative}
+.pass-wrap input{padding-right:44px}
+.pass-toggle{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:36px;height:32px;border-radius:8px;color:var(--dim);font-size:14px;line-height:1}
+.pass-toggle:hover{color:var(--txt);background:var(--card2)}
+.pass-toggle[aria-pressed="true"]{color:var(--moss)}
 
 /* ---------- modal ---------- */
-.backdrop{position:fixed;inset:0;background:rgba(4,8,9,.72);backdrop-filter:blur(4px);z-index:60;display:grid;place-items:center;padding:16px;animation:fade .18s}
-.modal{background:#0F1A1B;border:1px solid var(--line);border-radius:16px;width:min(520px,100%);max-height:88vh;overflow:auto;box-shadow:0 30px 70px rgba(0,0,0,.6)}
+.backdrop{position:fixed;inset:0;background:rgba(4,8,9,.82);z-index:60;display:grid;place-items:center;padding:16px}
+.modal{background:#0F1A1B;border:1px solid var(--line);border-radius:16px;width:min(520px,100%);max-height:88vh;overflow:auto;box-shadow:0 16px 40px rgba(0,0,0,.45);contain:layout paint}
 .modal header{padding:16px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#0F1A1B;z-index:2}
 .modal .body{padding:16px 18px}
 .modal footer{padding:14px 18px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;position:sticky;bottom:0;background:#0F1A1B}
+html.modal-open,html.modal-open body{overflow:hidden}
+html.modal-open .rail,html.modal-open .mobnav{backdrop-filter:none;-webkit-backdrop-filter:none}
 @keyframes fade{from{opacity:0}to{opacity:1}}
 
 /* ---------- chat ---------- */
@@ -237,8 +244,13 @@ textarea{min-height:78px;resize:vertical;font-family:inherit}
   <form class="gate-card" id="loginform" autocomplete="on">
     <div class="eyebrow">Bioma</div>
     <h1>Entrar</h1>
-    <label class="f"><span class="lb">Email</span><input id="login-email" type="email" required autocomplete="username"></label>
-    <label class="f"><span class="lb">Contraseña</span><input id="login-pass" type="password" required autocomplete="current-password"></label>
+    <label class="f"><span class="lb">Email</span><input id="login-email" type="email" required autocomplete="username" spellcheck="false"></label>
+    <label class="f"><span class="lb">Contraseña</span>
+      <span class="pass-wrap">
+        <input id="login-pass" type="password" required autocomplete="off">
+        <button type="button" class="pass-toggle" id="login-pass-toggle" aria-label="Mostrar contraseña" aria-pressed="false" title="Mostrar contraseña">👁</button>
+      </span>
+    </label>
     <div class="gate-err" id="login-err"></div>
     <button class="btn primary" type="submit" style="width:100%;justify-content:center" id="login-btn">Entrar</button>
   </form>
@@ -865,16 +877,23 @@ function openForm(title, fields, values, onSubmit, submitLabel) {
     <footer><button class="btn ghost" data-close="1">Cancelar</button><button class="btn primary" id="mSubmit">${esc(submitLabel || 'Guardar')}</button></footer>
   </div></div>`;
   $('#mSubmit').onclick = () => modalSubmit();
-  $('#overlay').querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', e => { if (e.target === b) closeModal(); }));
+  bindModalClose();
 }
 function openInfo(title, html) {
   $('#overlay').innerHTML = `<div class="backdrop" data-close="1"><div class="modal">
     <header class="between"><h2>${esc(title)}</h2><button class="btn sm ghost" data-close="1">✕</button></header>
     <div class="body">${html}</div>
     <footer><button class="btn" data-close="1">Cerrar</button></footer></div></div>`;
+  bindModalClose();
+}
+function bindModalClose() {
+  document.documentElement.classList.add('modal-open');
   $('#overlay').querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', e => { if (e.target === b) closeModal(); }));
 }
-function closeModal() { $('#overlay').innerHTML = ''; }
+function closeModal() {
+  $('#overlay').innerHTML = '';
+  document.documentElement.classList.remove('modal-open');
+}
 
 /* ---------- gráfico de línea en SVG ---------- */
 function chart(data, opts) {
@@ -1953,13 +1972,14 @@ function hideGate() {
 }
 async function bootApp() {
   S = await Store.get();
-  if (S && S.unauthorized) { showGate(); return; }
+  if (S && S.unauthorized) { showGate(); return false; }
   if (!S || !S.ecosystems || !S.ecosystems.length) {
     S = seed();
     await Store.set(S);
   }
   if (!location.hash) location.hash = '#/hoy';
   render();
+  return true;
 }
 async function onLogin(e) {
   e.preventDefault();
@@ -1968,9 +1988,10 @@ async function onLogin(e) {
   err.textContent = '';
   btn.disabled = true;
   try {
-    await Store.login($('#login-email').value.trim(), $('#login-pass').value.trim());
-    await bootApp();
-    hideGate();
+    await Store.login($('#login-email').value.trim().toLowerCase(), $('#login-pass').value.replace(/[\u200B-\u200D\uFEFF]/g, '').trim());
+    const ok = await bootApp();
+    if (ok) hideGate();
+    else err.textContent = 'Entraste, pero no se pudieron cargar los datos. Prueba otra vez.';
   } catch (ex) {
     const msg = String(ex && ex.message || '');
     err.textContent = msg === 'invalid_credentials' || msg === 'login_failed'
@@ -1983,6 +2004,16 @@ async function onLogin(e) {
 (async function init() {
   $('#fab').onclick = toggleChat;
   $('#loginform').addEventListener('submit', onLogin);
+  $('#login-pass-toggle').addEventListener('click', () => {
+    const input = $('#login-pass');
+    const btn = $('#login-pass-toggle');
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+    btn.setAttribute('aria-label', show ? 'Ocultar contraseña' : 'Mostrar contraseña');
+    btn.title = show ? 'Ocultar contraseña' : 'Mostrar contraseña';
+    input.focus();
+  });
   try {
     const user = await Store.session();
     if (!user) { showGate(); return; }

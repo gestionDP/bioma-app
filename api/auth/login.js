@@ -11,8 +11,8 @@ export default async function handler(req, res) {
     return send(res, 400, { error: "invalid_json" });
   }
 
-  const email = typeof body.email === "string" ? body.email.trim() : "";
-  const password = typeof body.password === "string" ? body.password.trim() : "";
+  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  const password = typeof body.password === "string" ? body.password.replace(/[\u200B-\u200D\uFEFF]/g, "").trim() : "";
   if (!email || !password) return send(res, 400, { error: "missing_credentials" });
 
   try {
