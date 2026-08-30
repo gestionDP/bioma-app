@@ -1,70 +1,50 @@
 # BIOMA · sistema operativo de ecosistemas
 
-Aplicación de gestión para acuarios, terrarios y futuros ecosistemas. Un solo HTML: se abre en local o se sirve como página estática.
+Aplicación de gestión para acuarios y terrarios. El navegador solo habla con `/api/*` en el mismo origen. Las claves de Supabase viven en el servidor (`.env.local`), nunca en el HTML.
 
-Los datos viven en el dispositivo (`localStorage`). No hay cuenta ni servidor en esta versión.
+La sesión va en cookies `httpOnly`. El cliente de Supabase usa el JWT del usuario, así que aplica RLS. No hay `service_role` en el navegador.
 
 ## Contenido del repo
 
 | Archivo | Qué es |
 |---|---|
-| `index.html` | La aplicación. Lista para abrir o desplegar. |
-| `supabase/schema.sql` | Esquema PostgreSQL con RLS, auditoría y vistas (versión en la nube, entrega 2). |
-| `vercel.json` | Config mínima para un deploy estático en Vercel. |
+| `index.html` | La aplicación. Login y datos van por `/api`. |
+| `api/` | Login, sesión, logout y persistencia del estado. |
+| `supabase/schema.sql` | Esquema PostgreSQL con RLS, auditoría y vistas. |
+| `.env.example` | Variables de servidor (vacías). Copia a `.env.local`. |
+| `vercel.json` | `cleanUrls` y `no-store` en `/api`. |
 
 ## Uso local
 
-Abre `index.html` en el navegador, o sirve la carpeta:
-
 ```bash
-npx --yes serve .
+cp .env.example .env.local
+# rellena SUPABASE_URL y SUPABASE_ANON_KEY (solo servidor)
+npm install
+npm run dev
 ```
 
-En el móvil: súbela a una URL, ábrela en Safari o Chrome y *Compartir → Añadir a pantalla de inicio*.
+Abre `http://127.0.0.1:3000`. Entra con un usuario de Auth de ese proyecto. Si la cuenta no tiene ecosistemas, se siembra el ejemplo del 600 L y se guarda en la base.
 
-Desde *Ajustes* puedes exportar una copia completa en JSON y restaurarla en otro dispositivo.
+## Variables de entorno
+
+Solo servidor. No uses prefijos `NEXT_PUBLIC_` ni las pongas en `index.html`.
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY` (anon / publishable; no la service role)
 
 ## Deploy
 
-Cualquier host estático sirve este repo tal cual (la raíz es `index.html`).
-
-**Vercel** (después de tener el remote en GitHub):
-
-```bash
-npx --yes vercel
-```
-
-O importa el repo en [vercel.com/new](https://vercel.com/new). Framework preset: *Other*. Output: la raíz del repo.
-
-**Netlify:** *Add new site → Import an existing project* y apunta a este repo. Build command vacío; publish directory `.`
-
-**GitHub Pages:** Settings → Pages → Deploy from a branch → `main` / `/ (root)`.
+En Vercel: mismas variables en el proyecto, Framework *Other*, raíz del repo. Las funciones de `/api` se publican solas.
 
 ## Qué hace
 
-**Hoy.** Pendiente de todos los ecosistemas, ordenado por hora. Un toque marca la tarea como hecha.
+**Hoy.** Pendiente de todos los ecosistemas, ordenado por hora.
 
-**Ecosistemas.** Cuatro fichas de ejemplo: acuario 600 L, 18 L, terrario de camaleón pantera (planificado) y gambario (idea). Cada una tiene once secciones.
-
-**Habitantes.** Fichas con sello de identificación (`confirmado` / `probable` / `pendiente`) y bloque de compatibilidad.
-
-**Plantas, Equipamiento, Parámetros, Alimentación, Mantenimiento, Iluminación, Salud, Diario, Documentación.** CRUD y gráficas cuando hay dos lecturas.
+**Ecosistemas.** Fichas con habitantes, plantas, equipos, parámetros, tareas, salud, diario y documentación.
 
 **Modo cuidador.** Checklist diaria, prohibiciones y Markdown exportable.
 
-**Asistente.** Responde con los datos registrados. Si un dato no existe, lo dice; no lo estima. El fallback a la API de Anthropic no está cableado en esta versión estática.
-
-## Motores
-
-- **Tareas.** Frecuencia en días + última ejecución → próxima fecha y retraso.
-- **Compatibilidad futura.** Talla adulta de la presa / 0,35 ≈ talla a la que el depredador es un problema; con ritmo medido, se traduce a meses.
-- **Avisos.** Rangos, tendencias, tareas vencidas, IDs pendientes y riesgo de depredación. Siempre con motivo.
-
-## Versión en la nube (entrega 2)
-
-`supabase/schema.sql` modela 25 tablas, auditoría y tres roles. El cuidador puede anotar; el `DELETE` queda reservado al propietario.
-
-Pasos previstos: crear proyecto en Supabase, ejecutar el SQL, registrar el primer usuario (el trigger crea el perfil) y, más adelante, portar esto a Next.js. Las claves (`SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`) van solo en el servidor.
+**Asistente.** Responde con los datos registrados. Si un dato no existe, lo dice.
 
 ## Al abrirla por primera vez
 

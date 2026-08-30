@@ -193,6 +193,11 @@ textarea{min-height:78px;resize:vertical;font-family:inherit}
 .empty{padding:34px 18px;text-align:center;color:var(--dim);border:1px dashed var(--line);border-radius:var(--r)}
 .empty b{display:block;color:var(--txt);font-family:var(--ff-d);margin-bottom:5px}
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#16262A;border:1px solid #2C4A46;padding:10px 16px;border-radius:11px;z-index:90;font-size:13.5px;box-shadow:0 12px 30px rgba(0,0,0,.5);animation:fade .15s}
+.gate{position:fixed;inset:0;z-index:100;background:rgba(7,12,14,.92);display:grid;place-items:center;padding:20px}
+.gate[hidden]{display:none}
+.gate-card{width:min(400px,100%);background:#0F1A1B;border:1px solid var(--line);border-radius:16px;padding:28px 24px}
+.gate-card h1{margin-bottom:16px}
+.gate-err{color:var(--alert);font-size:13px;min-height:1.2em;margin:8px 0 12px}
 .tl{position:relative;padding-left:20px}
 .tl::before{content:'';position:absolute;left:5px;top:6px;bottom:6px;width:1px;background:var(--line)}
 .tl .ev{position:relative;padding:0 0 15px}
@@ -228,12 +233,22 @@ textarea{min-height:78px;resize:vertical;font-family:inherit}
 <nav class="mobnav" id="mobnav"></nav>
 <button class="fab" id="fab" title="Asistente">💬</button>
 <div id="overlay"></div>
+<div id="gate" class="gate" hidden>
+  <form class="gate-card" id="loginform" autocomplete="on">
+    <div class="eyebrow">Bioma</div>
+    <h1>Entrar</h1>
+    <label class="f"><span class="lb">Email</span><input id="login-email" type="email" required autocomplete="username"></label>
+    <label class="f"><span class="lb">Contraseña</span><input id="login-pass" type="password" required autocomplete="current-password"></label>
+    <div class="gate-err" id="login-err"></div>
+    <button class="btn primary" type="submit" style="width:100%;justify-content:center" id="login-btn">Entrar</button>
+  </form>
+</div>
 <script>
 /* ============================================================
    BIOMA · núcleo
    Estado, persistencia, semilla y motores de análisis.
    ============================================================ */
-const uid = p => (p||'id') + '_' + Math.random().toString(36).slice(2, 9);
+const uid = () => crypto.randomUUID();
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const nowISO = () => new Date().toISOString();
 const days = (a, b) => Math.round((new Date(b || nowISO()) - new Date(a)) / 864e5);
@@ -243,31 +258,65 @@ const fmtHora = iso => { if (!iso) return ''; const d = new Date(iso); return d.
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const ago = iso => { if (!iso) return 'nunca'; const d = days(iso); return d <= 0 ? 'hoy' : d === 1 ? 'ayer' : `hace ${d} d`; };
 
-/* ---------- persistencia (artifact storage → localStorage → memoria) ---------- */
-const KEY = 'bioma:v1';
+/* ---------- persistencia vía /api (cookies httpOnly; sin claves en el HTML) ---------- */
+let sessionUser = null;
 let memory = null;
 const Store = {
+  async session() {
+    const r = await fetch("/api/auth/session", { credentials: "same-origin" });
+    const d = await r.json();
+    sessionUser = d.user || null;
+    return sessionUser;
+  },
+  async login(email, password) {
+    const r = await fetch("/api/auth/login", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || "login_failed");
+    sessionUser = d.user;
+    return d.user;
+  },
+  async logout() {
+    await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
+    sessionUser = null;
+    memory = null;
+  },
   async get() {
-    try { if (window.storage) { const r = await window.storage.get(KEY); return r ? JSON.parse(r.value) : null; } } catch (e) { }
-    try { const r = localStorage.getItem(KEY); if (r) return JSON.parse(r); } catch (e) { }
+    const r = await fetch("/api/state", { credentials: "same-origin" });
+    if (r.status === 401) return { unauthorized: true };
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || "state_failed");
+    memory = d.empty ? null : d.state;
     return memory;
   },
   async set(v) {
     memory = v;
-    const s = JSON.stringify(v);
-    try { if (window.storage) { await window.storage.set(KEY, s); return; } } catch (e) { }
-    try { localStorage.setItem(KEY, s); } catch (e) { }
+    const r = await fetch("/api/state", {
+      method: "PUT",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ state: v })
+    });
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      throw new Error(d.detail || d.error || "save_failed");
+    }
   },
-  async clear() {
-    memory = null;
-    try { if (window.storage) await window.storage.delete(KEY); } catch (e) { }
-    try { localStorage.removeItem(KEY); } catch (e) { }
-  }
+  async clear() { memory = null; }
 };
 
 let S = null;          // estado global
 let saveT = null;
-function save() { clearTimeout(saveT); saveT = setTimeout(() => Store.set(S), 180); }
+function save() {
+  clearTimeout(saveT);
+  saveT = setTimeout(() => {
+    Store.set(S).catch(() => toast('No se pudo guardar. Revisa la sesión.'));
+  }, 180);
+}
 
 /* ---------- rangos de referencia por tipo de parámetro ---------- */
 const PARAMS = {
@@ -300,7 +349,8 @@ function seed() {
   const t = todayISO();
   const d = n => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10);
 
-  const E1 = 'eco_600', E2 = 'eco_18', E3 = 'eco_cam', E4 = 'eco_gamb';
+  const E1 = uid(), E2 = uid(), E3 = uid(), E4 = uid();
+  const AN_BICHIR = uid(), AN_CUCHILLO = uid(), AN_CTENO = uid();
 
   const ecosystems = [
     {
@@ -340,7 +390,7 @@ function seed() {
 
   const animals = [
     A({
-      id: 'an_bichir', nombre: 'Bichir albino', sci: 'Polypterus senegalus (albino)', ident: 'probable',
+      id: AN_BICHIR, nombre: 'Bichir albino', sci: 'Polypterus senegalus (albino)', ident: 'probable',
       qty: 1, sizeCm: 8, adultCm: 30, zona: 'fondo', nocturno: true, vida: '10–15 años', dificultad: 'medio',
       comportamiento: 'Depredador oportunista, crepuscular/nocturno, respirador aéreo. Gran escapista.',
       dieta: 'Pellet carnívoro hundible, gamba/langostino troceado, lombriz, congelado. Evitar peces alimentadores.',
@@ -349,7 +399,7 @@ function seed() {
       notas: 'Prioridad: tapa sin huecos alrededor de tubos y cables.'
     }),
     A({
-      id: 'an_cuchillo', nombre: 'Cuchillo fantasma negro', sci: 'Apteronotus albifrons', ident: 'confirmado',
+      id: AN_CUCHILLO, nombre: 'Cuchillo fantasma negro', sci: 'Apteronotus albifrons', ident: 'confirmado',
       qty: 1, sizeCm: 6, adultCm: 42, zona: 'media', nocturno: true, vida: '10–15 años', dificultad: 'alto',
       comportamiento: 'Nocturno, débilmente eléctrico. Necesita refugios oscuros y comer sin competencia.',
       dieta: 'Larva roja, artemia, mysis, lombriz troceada, gamba fina; después pellet carnívoro.',
@@ -357,72 +407,72 @@ function seed() {
       notas: '120 cm de largo pueden quedarse cortos cuando alcance 30–50 cm. Reevaluar bienestar.'
     }),
     A({
-      id: 'an_cteno', nombre: 'Ctenopoma leopardo', sci: 'Ctenopoma acutirostre', ident: 'confirmado',
+      id: AN_CTENO, nombre: 'Ctenopoma leopardo', sci: 'Ctenopoma acutirostre', ident: 'confirmado',
       qty: 1, sizeCm: 5, adultCm: 17, zona: 'media', vida: '8–10 años', dificultad: 'medio',
       comportamiento: 'Laberíntido africano. Depredador de emboscada, inmóvil entre plantas y madera. Puede saltar.',
       dieta: 'Congelados, larvas, artemia, mysis, lombriz, gamba, pellet carnívoro.',
       compat: 'Peces de cuerpo alto y tamaño medio.', incompat: 'Cualquier pez que le quepa en la boca.'
     }),
     A({
-      id: 'an_gourami', nombre: 'Gourami azul', sci: 'Trichopodus trichopterus', ident: 'probable',
+      nombre: 'Gourami azul', sci: 'Trichopodus trichopterus', ident: 'probable',
       qty: 1, sizeCm: null, adultCm: 13, zona: 'superficie', vida: '4–6 años', dificultad: 'bajo',
       comportamiento: 'Laberíntido, zona alta. Puede volverse territorial al madurar.',
       dieta: 'Escama/gránulo de calidad, congelado.', incompat: 'Vigilar interacción territorial con el Ctenopoma.'
     }),
     A({
-      id: 'an_pseudo', nombre: 'Pseudomugil amarillo', sci: 'Pseudomugil furcatus', ident: 'confirmado',
+      nombre: 'Pseudomugil amarillo', sci: 'Pseudomugil furcatus', ident: 'confirmado',
       qty: 7, sizeCm: 3, adultCm: 5, zona: 'superficie', vida: '2–3 años', dificultad: 'medio',
       comportamiento: 'Gregario, activo, banco superior. Aporta el movimiento del acuario.',
       dieta: 'Micro gránulo, artemia recién eclosionada, congelado fino.',
       incompat: 'Presa futura de bichir y Ctenopoma.'
     }),
     A({
-      id: 'an_bentosi', nombre: 'Tetra bentosi', sci: 'Hyphessobrycon bentosi', ident: 'confirmado',
+      nombre: 'Tetra bentosi', sci: 'Hyphessobrycon bentosi', ident: 'confirmado',
       qty: 3, sizeCm: 3, adultCm: 4.5, zona: 'media', vida: '3–5 años', dificultad: 'bajo',
       comportamiento: 'Gregario de zona media.', dieta: 'Escama, gránulo pequeño, congelado.',
       notas: 'En un comunitario convencional pediría grupo mayor; aquí no se amplía porque es presa futura.'
     }),
     A({
-      id: 'an_kuhli', nombre: 'Kuhli', sci: 'Pangio spp.', ident: 'pendiente',
+      nombre: 'Kuhli', sci: 'Pangio spp.', ident: 'pendiente',
       qty: 3, sizeCm: 6, adultCm: 10, zona: 'fondo', nocturno: true, vida: '5–10 años', dificultad: 'bajo',
       comportamiento: 'Bentónico, serpentiforme, nocturno. Usa grietas, raíces y sustrato.',
       dieta: 'Pastilla hundible, congelado, lombriz fina.',
       incompat: 'Riesgo alto con el bichir adulto: misma franja horaria y misma zona.'
     }),
     A({
-      id: 'an_gobios', nombre: 'Gobios (2 azules + 1 arcoíris)', sci: 'Especie pendiente de identificar', ident: 'pendiente',
+      nombre: 'Gobios (2 azules + 1 arcoíris)', sci: 'Especie pendiente de identificar', ident: 'pendiente',
       qty: 3, sizeCm: null, adultCm: null, zona: 'fondo', dificultad: 'medio',
       comportamiento: 'Ocupan roca y fondo, comportamiento muy distinto al de los peces de columna.',
       dieta: 'Congelado, pastilla hundible.',
       notas: 'Sin identificación no se puede calcular compatibilidad adulta ni parámetros ideales.'
     }),
     A({
-      id: 'an_ancistrus', nombre: 'Ancistrus (2 normales + 1 albino)', sci: 'Ancistrus sp.', ident: 'probable',
+      nombre: 'Ancistrus (2 normales + 1 albino)', sci: 'Ancistrus sp.', ident: 'probable',
       qty: 3, sizeCm: null, adultCm: 13, zona: 'fondo', nocturno: true, vida: '8–12 años', dificultad: 'bajo',
       comportamiento: 'Raspador nocturno. Necesita madera y cuevas.',
       dieta: 'Pastilla vegetal, verdura escaldada (calabacín, pepino), madera para raspar.',
       compat: 'Buen candidato a largo plazo: cuerpo y armadura suficientes.'
     }),
     A({
-      id: 'an_planorbis', nombre: 'Planorbis', sci: 'Planorbarius sp.', clase: 'molusco', ident: 'probable',
+      nombre: 'Planorbis', sci: 'Planorbarius sp.', clase: 'molusco', ident: 'probable',
       qty: 2, adultCm: 2, zona: 'fondo', dificultad: 'bajo',
       comportamiento: 'Caracol de concha espiral. Se reproduce si sobra comida.',
       incompat: 'Anentome helena los caza.'
     }),
     A({
-      id: 'an_helena', nombre: 'Caracol asesino', sci: 'Anentome helena', clase: 'molusco', ident: 'confirmado',
+      nombre: 'Caracol asesino', sci: 'Anentome helena', clase: 'molusco', ident: 'confirmado',
       qty: 2, adultCm: 2, zona: 'fondo', dificultad: 'bajo',
       comportamiento: 'Depredador de otros caracoles.', incompat: 'Planorbis del propio acuario.'
     }),
     A({
-      id: 'an_ranas', nombre: 'Ranas acuáticas albinas', sci: 'Xenopus laevis (albino)', clase: 'anfibio', ident: 'probable',
+      nombre: 'Ranas acuáticas albinas', sci: 'Xenopus laevis (albino)', clase: 'anfibio', ident: 'probable',
       qty: 2, adultCm: 12, zona: 'fondo', dificultad: 'medio', vida: '10–15 años',
       comportamiento: 'Respiran en superficie; vista muy pobre, buscan por olfato y tacto.',
       dieta: 'Alimentación dirigida con pinza cerca del fondo. Comprobar que comen las dos.',
       notas: '75 cm de altura y competencia por el alimento. Probable traslado a medio plazo.'
     }),
     A({
-      id: 'an_betta', ecoId: E2, nombre: 'Betta', sci: 'Betta splendens', ident: 'probable',
+      ecoId: E2, nombre: 'Betta', sci: 'Betta splendens', ident: 'probable',
       qty: 1, adultCm: 6, zona: 'superficie', vida: '3–5 años', dificultad: 'bajo',
       comportamiento: 'Laberíntido, territorial. Prefiere corriente suave.',
       dieta: 'Gránulo específico para betta, congelado ocasional. Ayuno 1 día/semana.',
@@ -469,19 +519,19 @@ function seed() {
   ];
 
   const measurements = [
-    { id: uid('m'), animalId: 'an_bichir', fecha: d(2), cm: 8, nota: 'Talla de entrada.' },
-    { id: uid('m'), animalId: 'an_cuchillo', fecha: d(2), cm: 6, nota: 'Talla de entrada.' },
-    { id: uid('m'), animalId: 'an_cteno', fecha: d(2), cm: 5, nota: 'Talla de entrada.' }
+    { id: uid(), animalId: AN_BICHIR, fecha: d(2), cm: 8, nota: 'Talla de entrada.' },
+    { id: uid(), animalId: AN_CUCHILLO, fecha: d(2), cm: 6, nota: 'Talla de entrada.' },
+    { id: uid(), animalId: AN_CTENO, fecha: d(2), cm: 5, nota: 'Talla de entrada.' }
   ];
 
   const health = [
     {
-      id: uid('h'), ecoId: 'eco_105', animalRef: 'Betta macho (acuario 105 L, histórico)', sintomas: 'Ojo turbio, flotación vertical, natación errática, letargia, inapetencia',
+      id: uid(), ecoId: E1, animalRef: 'Betta macho (acuario 105 L, histórico)', sintomas: 'Ojo turbio, flotación vertical, natación errática, letargia, inapetencia',
       diagnostico: 'Posible reacción aguda al tratamiento u otro evento grave', tratamiento: 'Aislamiento en hospital', dosis: '',
       inicio: d(240), fin: d(230), resultado: 'Documentado como antecedente. Relevante para futuras decisiones de medicación.', estado: 'cerrado'
     },
     {
-      id: uid('h'), ecoId: 'eco_105', animalRef: 'Botias (acuario 105 L, histórico)', sintomas: 'Puntos blancos', diagnostico: 'Ich',
+      id: uid(), ecoId: E1, animalRef: 'Botias (acuario 105 L, histórico)', sintomas: 'Puntos blancos', diagnostico: 'Ich',
       tratamiento: 'eSHa EXIT', dosis: '20 gotas / ~100 L', inicio: d(250), fin: d(240), resultado: 'Episodio superado', estado: 'cerrado'
     }
   ];
@@ -523,16 +573,15 @@ function seed() {
 
   return {
     v: 1,
-    users: [
-      { id: 'owner', nombre: 'Yo', rol: 'owner' },
-      { id: 'cuid', nombre: 'Cuidador', rol: 'cuidador' }
-    ],
-    currentUser: 'owner',
+    users: sessionUser
+      ? [{ id: sessionUser.id, nombre: sessionUser.nombre || sessionUser.email, rol: 'owner', email: sessionUser.email }]
+      : [{ id: 'owner', nombre: 'Yo', rol: 'owner' }],
+    currentUser: sessionUser ? sessionUser.id : 'owner',
     ecosystems, animals, plants, equipment, params, tasks, taskLogs: [], measurements, health, docs, timeline,
     feedLogs: [],
     caretaker: { activo: false, desde: null, hasta: null, persona: '', noHacer: ['No echar más comida de la indicada', 'No añadir productos ni medicación', 'No limpiar filtros', 'No cambiar la temperatura', 'No introducir animales'] },
     chat: [],
-    lighting: [{ ecoId: E1, on: '14:00', off: '20:00', horas: 6, intensidad: '60 %', nota: 'Fotoperiodo corto porque el acuario está recién montado.' }],
+    lighting: [{ id: uid(), ecoId: E1, on: '14:00', off: '20:00', horas: 6, intensidad: '60 %', nota: 'Fotoperiodo corto porque el acuario está recién montado.' }],
     audit: []
   };
 }
@@ -598,7 +647,7 @@ function currentSize(a) {
 const PREY_RATIO = 0.35;
 function predationScan(ecoId) {
   const list = animalsOf(ecoId);
-  const preds = list.filter(a => /depredador|emboscada|caza/i.test(a.comportamiento || '') || ['an_bichir', 'an_cteno'].includes(a.id));
+  const preds = list.filter(a => /depredador|emboscada|caza/i.test(a.comportamiento || ''));
   const out = [];
   preds.forEach(p => {
     const now = currentSize(p) || 0;
@@ -882,15 +931,14 @@ function renderNav() {
     <div class="rail-foot">
       <div class="row" style="padding:4px 8px">
         <div style="flex:1"><div style="font-size:13.5px">${esc(me().nombre)}</div><div class="eyebrow">${me().rol}</div></div>
-        <button class="btn sm ghost" onclick="switchUser()">Cambiar</button>
+        <button class="btn sm ghost" onclick="logout()">Salir</button>
       </div>
     </div>`;
   $('#mobnav').innerHTML = NAV.map(n => `<a class="${r.view === n.k ? 'on' : ''}" href="#/${n.k}"><span class="ic">${n.ic}</span>${n.l === 'Modo cuidador' ? 'Cuidador' : n.l}</a>`).join('');
 }
-function switchUser() {
-  const i = S.users.findIndex(u => u.id === S.currentUser);
-  S.currentUser = S.users[(i + 1) % S.users.length].id;
-  save(); render(); toast('Ahora usas la app como ' + me().nombre + ' (' + me().rol + ')');
+async function logout() {
+  await Store.logout();
+  location.reload();
 }
 
 /* ---------- componentes ---------- */
@@ -1465,13 +1513,13 @@ function luzForm(ecoId) {
     { k: 'horas', label: 'Horas totales', type: 'number', def: 6 }, { k: 'intensidad', label: 'Intensidad', def: '60 %' },
     { k: 'nota', label: 'Notas', type: 'textarea' }
   ], l, d => {
-    if (l) Object.assign(l, d); else S.lighting.push({ ecoId, ...d });
+    if (l) Object.assign(l, d); else S.lighting.push({ id: uid(), ecoId, ...d });
     audit('Iluminación configurada', ecoId); save(); render(); toast('Guardado');
   });
 }
 
 function tabSalud(e) {
-  const l = S.health.filter(h => h.ecoId === e.id || (e.id === 'eco_600' && h.ecoId === 'eco_105'));
+  const l = S.health.filter(h => h.ecoId === e.id);
   return `<div class="between" style="margin-bottom:12px"><div class="dim">${l.length} incidencias registradas</div>
     <button class="btn primary" onclick="healthForm('${e.id}')">+ Registrar incidencia</button></div>
   <div class="stack">${l.map(h => `<div class="card">
@@ -1608,17 +1656,16 @@ function stopCare() { S.caretaker.activo = false; audit('Modo cuidador desactiva
 
 /* ---------- ajustes ---------- */
 function viewAjustes() {
+  const email = sessionUser?.email || me().email || '';
   return `<div class="pagehead"><div><div class="eyebrow">Cuenta y datos</div><h1>Ajustes</h1></div></div>
   <div class="grid g2" style="align-items:start">
     <div class="stack">
       <div class="card">
-        <div class="eyebrow">Personas con acceso</div>
-        <div class="list" style="margin-top:6px">${S.users.map(u => `<div class="item" style="padding:9px 0">
-          <div class="grow"><div class="t">${esc(u.nombre)}${u.id === S.currentUser ? ' <span class="faint">(sesión actual)</span>' : ''}</div>
-          <div class="s">${u.rol === 'owner' ? 'Control total' : u.rol === 'cuidador' ? 'Puede alimentar, medir, completar tareas y anotar. No borra nada.' : 'Solo lectura'}</div></div>
-          <span class="pill">${esc(u.rol)}</span></div>`).join('')}</div>
-        <button class="btn sm" style="margin-top:10px" onclick="userForm()">+ Invitar persona</button>
-        <div class="hint">En esta versión los perfiles se cambian desde el propio dispositivo. El paquete de despliegue incluye autenticación real con Supabase y políticas por fila.</div>
+        <div class="eyebrow">Sesión</div>
+        <div class="t" style="margin-top:8px">${esc(me().nombre)}</div>
+        <div class="s">${esc(email)}</div>
+        <button class="btn sm" style="margin-top:12px" onclick="logout()">Cerrar sesión</button>
+        <div class="hint">La sesión viaja en cookies httpOnly. Este HTML no lleva claves de la base ni de Auth.</div>
       </div>
       <div class="card">
         <div class="eyebrow">Datos</div>
@@ -1627,7 +1674,7 @@ function viewAjustes() {
           <button class="btn" onclick="importAll()">Importar copia</button>
           <button class="btn" onclick="resetAll()">Restablecer datos de ejemplo</button>
         </div>
-        <div class="hint">La copia incluye todo el histórico. Nada se sobrescribe: cada medición y cada tarea completada queda registrada con fecha, hora y autor.</div>
+        <div class="hint">Exportar descarga una copia. Importar o restablecer sustituye lo que hay en la base para tu usuario.</div>
       </div>
     </div>
     <div class="card">
@@ -1638,12 +1685,7 @@ function viewAjustes() {
     </div>
   </div>`;
 }
-function userForm() {
-  openForm('Invitar persona', [
-    { k: 'nombre', label: 'Nombre', req: 1 },
-    { k: 'rol', label: 'Rol', type: 'select', options: ['cuidador', 'viewer', 'owner'] }
-  ], null, d => { S.users.push({ id: uid('u'), ...d }); audit('Persona invitada', d.nombre); save(); render(); toast('Añadida'); });
-}
+function userForm() { toast('Las invitaciones reales irán por miembros de ecosistema'); }
 function download(name, text, type) {
   const b = new Blob([text], { type: type || 'text/plain' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name; a.click();
@@ -1757,8 +1799,9 @@ function contextPack() {
 function localAnswer(q) {
   const t = q.toLowerCase();
   const r = parseHash();
-  const id = r.view === 'eco' ? r.id : 'eco_600';
+  const id = r.view === 'eco' ? r.id : (S.ecosystems[0] && S.ecosystems[0].id);
   const e = eco(id);
+  if (!e) return { txt: 'Todavía no hay ecosistemas en esta cuenta.', src: 'ecosistemas' };
 
   if (/hoy|qué tengo que hacer|que tengo que hacer|pendiente/.test(t)) {
     const l = S.ecosystems.map(x => ({ x, t: tasksToday(x.id).filter(z => !doneToday(z.id)) })).filter(z => z.t.length);
@@ -1776,7 +1819,7 @@ function localAnswer(q) {
     return { txt: 'Dime de qué habitante quieres la pauta y te doy exactamente lo que hay registrado en su ficha.', src: null };
   }
   if (/ha crecido|crecimiento|cuánto mide|cuanto mide/.test(t)) {
-    const a = S.animals.find(x => t.includes(x.nombre.toLowerCase().split(' ')[0])) || S.animals.find(x => x.id === 'an_bichir');
+    const a = S.animals.find(x => t.includes(x.nombre.toLowerCase().split(' ')[0])) || S.animals.find(x => /bichir/i.test(x.nombre));
     const rate = growthRate(a.id), cur = currentSize(a);
     if (!rate) return { txt: `${a.nombre} mide ${cur ?? '—'} cm según la última medida registrada. Solo hay una medición, así que todavía no puedo calcular el ritmo: registra otra dentro de 2–4 semanas.`, src: 'crecimiento' };
     return { txt: `${a.nombre}: ${cur} cm, creciendo a ${rate.toFixed(1)} cm/mes. Talla adulta esperada ${a.adultCm} cm.`, src: 'crecimiento' };
@@ -1900,12 +1943,53 @@ function render() {
 window.addEventListener('hashchange', render);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); if (chatOpen) toggleChat(); } });
 
-(async function init() {
+function showGate(msg) {
+  $('#gate').hidden = false;
+  if (msg) $('#login-err').textContent = msg;
+}
+function hideGate() {
+  $('#gate').hidden = true;
+  $('#login-err').textContent = '';
+}
+async function bootApp() {
   S = await Store.get();
-  if (!S || !S.ecosystems) { S = seed(); await Store.set(S); }
-  $('#fab').onclick = toggleChat;
+  if (S && S.unauthorized) { showGate(); return; }
+  if (!S || !S.ecosystems || !S.ecosystems.length) {
+    S = seed();
+    await Store.set(S);
+  }
   if (!location.hash) location.hash = '#/hoy';
   render();
+}
+async function onLogin(e) {
+  e.preventDefault();
+  const btn = $('#login-btn');
+  const err = $('#login-err');
+  err.textContent = '';
+  btn.disabled = true;
+  try {
+    await Store.login($('#login-email').value.trim(), $('#login-pass').value.trim());
+    await bootApp();
+    hideGate();
+  } catch (ex) {
+    const msg = String(ex && ex.message || '');
+    err.textContent = msg === 'invalid_credentials' || msg === 'login_failed'
+      ? 'Email o contraseña incorrectos.'
+      : 'Entraste, pero no se pudieron cargar los datos. Prueba otra vez.';
+  } finally {
+    btn.disabled = false;
+  }
+}
+(async function init() {
+  $('#fab').onclick = toggleChat;
+  $('#loginform').addEventListener('submit', onLogin);
+  try {
+    const user = await Store.session();
+    if (!user) { showGate(); return; }
+    await bootApp();
+  } catch (e) {
+    showGate('No se pudo comprobar la sesión.');
+  }
 })();
 
 </script>

@@ -39,6 +39,7 @@ create table ecosistemas (
   fecha_montaje date,
   concepto text, sustrato text, hardscape text, ubicacion text,
   color text default '#7FD1A6',
+  dims text,
   foto_url text,
   creado timestamptz default now()
 );
@@ -53,20 +54,26 @@ create table ecosistema_miembros (
 
 -- función de acceso reutilizada por todas las políticas
 create or replace function tiene_acceso(eco uuid) returns boolean
-language sql security definer stable as $$
+language sql security definer stable
+set search_path = public
+as $$
   select exists (select 1 from ecosistemas e where e.id = eco and e.owner = auth.uid())
       or exists (select 1 from ecosistema_miembros m where m.ecosistema = eco and m.usuario = auth.uid());
 $$;
 
 create or replace function puede_escribir(eco uuid) returns boolean
-language sql security definer stable as $$
+language sql security definer stable
+set search_path = public
+as $$
   select exists (select 1 from ecosistemas e where e.id = eco and e.owner = auth.uid())
       or exists (select 1 from ecosistema_miembros m
                  where m.ecosistema = eco and m.usuario = auth.uid() and m.rol = 'cuidador');
 $$;
 
 create or replace function es_owner(eco uuid) returns boolean
-language sql security definer stable as $$
+language sql security definer stable
+set search_path = public
+as $$
   select exists (select 1 from ecosistemas e where e.id = eco and e.owner = auth.uid());
 $$;
 
@@ -344,7 +351,9 @@ create table auditoria (
 );
 
 create or replace function fn_auditoria() returns trigger
-language plpgsql security definer as $$
+language plpgsql security definer
+set search_path = public
+as $$
 begin
   insert into auditoria (ecosistema, tabla, registro, accion, valor_anterior, valor_nuevo, autor)
   values (
@@ -381,7 +390,13 @@ create policy "perfil propio" on perfiles
   for all using (id = auth.uid()) with check (id = auth.uid());
 
 create policy "ver ecosistemas accesibles" on ecosistemas
-  for select using (tiene_acceso(id));
+  for select using (
+    owner = auth.uid()
+    or exists (
+      select 1 from ecosistema_miembros m
+      where m.ecosistema = id and m.usuario = auth.uid()
+    )
+  );
 create policy "crear ecosistema propio" on ecosistemas
   for insert with check (owner = auth.uid());
 create policy "editar solo owner" on ecosistemas
@@ -441,7 +456,9 @@ create policy "escribir instrucciones" on instrucciones_cuidador for all
 
 -- ---------- perfil automático al registrarse ----------
 create or replace function fn_nuevo_usuario() returns trigger
-language plpgsql security definer as $$
+language plpgsql security definer
+set search_path = public
+as $$
 begin
   insert into perfiles (id, nombre, email)
   values (new.id, coalesce(new.raw_user_meta_data->>'nombre', split_part(new.email,'@',1)), new.email);
@@ -451,18 +468,21 @@ create trigger tr_nuevo_usuario after insert on auth.users
   for each row execute function fn_nuevo_usuario();
 
 -- ---------- vistas de apoyo ----------
-create or replace view v_ultimo_parametro as
+create or replace view v_ultimo_parametro
+with (security_invoker = true) as
 select distinct on (ecosistema, clave)
   ecosistema, clave, valor, unidad, fecha, autor
 from parametros order by ecosistema, clave, fecha desc, creado desc;
 
-create or replace view v_tareas_pendientes as
+create or replace view v_tareas_pendientes
+with (security_invoker = true) as
 select t.*,
   coalesce(t.ultima_vez + t.frecuencia_dias, current_date) as proxima,
   current_date - coalesce(t.ultima_vez + t.frecuencia_dias, current_date) as dias_retraso
 from tareas t where t.activa;
 
-create or replace view v_censo as
+create or replace view v_censo
+with (security_invoker = true) as
 select ecosistema, sum(cantidad) as animales, count(*) as fichas
 from habitantes where estado not in ('fallecido','trasladado')
 group by ecosistema;

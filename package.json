@@ -1,0 +1,12 @@
+{
+  "name": "bioma-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "node -e \"process.exit(0)\""
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.4"
+  }
+}
